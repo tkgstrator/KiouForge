@@ -8,7 +8,7 @@
 // ===========================================================================
 // kif_trace_log — KIF_TRACE-gated wrapper around file_log.
 //
-// Diagnostic logging inside kiou_kifFillWriteOptions (the KIFWriteOptions
+// Diagnostic logging inside KFKifFillWriteOptions (the KIFWriteOptions
 // fill path) is verbose enough that we don't want it in release builds.
 // Pass `-DKIF_TRACE=1` to the compiler (Makefile honors `TRACE=1`) when
 // you need to see every pointer the fill walks and every slot it writes.
@@ -26,13 +26,13 @@
 // ===========================================================================
 // Helpers.m — small utilities for the KIF export path.
 //
-//   * kiou_kifTimestamp           — filename timestamp
-//   * kiou_kifSanitizeSegment       — make user-supplied strings safe
-//   * kiou_kifEnsureOutputDir               — create Documents/KiouForge/
-//   * kiou_kifTextFromGameController           — full KIF 2.0 via KIFWriter.Write
-//   * kiou_kifDescribeStartpos               — pick "startpos"/"sfen-<hash>"/"unknown"
+//   * KFKifTimestamp           — filename timestamp
+//   * KFKifSanitizeSegment       — make user-supplied strings safe
+//   * KFKifEnsureOutputDir               — create Documents/KiouForge/
+//   * KFKifTextFromGameController           — full KIF 2.0 via KIFWriter.Write
+//   * KFKifDescribeStartpos               — pick "startpos"/"sfen-<hash>"/"unknown"
 //
-// kiou_kifTextFromGameController is the bridge into il2cpp — everything else is
+// KFKifTextFromGameController is the bridge into il2cpp — everything else is
 // pure Foundation.
 //
 // Background: GameController.GetKifuText (RVA 0x5D43D10) returns an in-app
@@ -51,7 +51,7 @@
 //                                              just runs the il2cpp init; it sets
 //                                              no field to a non-zero value)
 //          ↓
-//     kiou_kifFillWriteOptions(opts, ...)      → best-effort write of:
+//     KFKifFillWriteOptions(opts, ...)      → best-effort write of:
 //                                                StartDateTime  (unconditional)
 //                                                MatchTitle     (unconditional)
 //                                                EndingLabel    (from GameController.Reason)
@@ -182,10 +182,10 @@ static void resolveIl2cppFunctions(void) {
 }
 
 // ---------------------------------------------------------------------------
-// kiou_kifTextFromGameController
+// KFKifTextFromGameController
 //
 // Run the full GetUSIText → ParseUSI → KIFWriteOptions..ctor →
-// kiou_kifFillWriteOptions → KIFWriter.Write pipeline and return the
+// KFKifFillWriteOptions → KIFWriter.Write pipeline and return the
 // resulting KIF 2.0 string. Returns nil on any failure (NULL receiver,
 // USI text empty, ParseUSI gave back NULL, KIFWriter.Write threw, …).
 //
@@ -197,7 +197,7 @@ static void resolveIl2cppFunctions(void) {
 // instance accessors and static methods in KIOU. Confirmed by Frida probe
 // (packages/frida/hook_kiou_kifwriter_probe.js).
 // ---------------------------------------------------------------------------
-NSString *kiou_kifTextFromGameController(void *gameCtrl,
+NSString *KFKifTextFromGameController(void *gameCtrl,
                                     void *matchConfig,
                                     void *stateStore,
                                     const char *matchModeTag) {
@@ -260,7 +260,7 @@ NSString *kiou_kifTextFromGameController(void *gameCtrl,
     // Step 3.5: fill the user-visible KIFWriteOptions fields. Safe to call
     // unconditionally — internal failures fall back to leaving the
     // specific field unset, which matches the pre-Phase-3 behavior.
-    kiou_kifFillWriteOptions(opts, matchConfig, stateStore, gameCtrl, matchModeTag);
+    KFKifFillWriteOptions(opts, matchConfig, stateStore, gameCtrl, matchModeTag);
 
     // Step 4: KIFWriter.Write(record, opts) → KIF 2.0 string
     void *kifStrPtr = NULL;
@@ -280,14 +280,14 @@ NSString *kiou_kifTextFromGameController(void *gameCtrl,
 }
 
 // ---------------------------------------------------------------------------
-// kiou_kifDescribeStartpos
+// KFKifDescribeStartpos
 //
 // Look at the GameController's PositionHistory[0] — that's the starting
 // position the match was set up from. Convert to SFEN; if it equals the
 // standard initial SFEN, return "startpos". Otherwise hash the SFEN and
 // return "sfen-<8 hex>" so the filename stays short.
 // ---------------------------------------------------------------------------
-NSString *kiou_kifDescribeStartpos(void *gameCtrl) {
+NSString *KFKifDescribeStartpos(void *gameCtrl) {
     resolveIl2cppFunctions();
     if (!g_PositionToSFEN) return @"unknown";
     if (!ptrLooksValid(gameCtrl)) return @"unknown";
@@ -325,13 +325,13 @@ NSString *kiou_kifDescribeStartpos(void *gameCtrl) {
 }
 
 // ---------------------------------------------------------------------------
-// kiou_kifTimestamp
+// KFKifTimestamp
 //
 // Format the current wall clock as "YYYYMMDDTHHMMSS" (UTC). No separators
 // other than the ISO 'T' so the result is safe to drop into a POSIX
 // filename and sorts lexicographically.
 // ---------------------------------------------------------------------------
-NSString *kiou_kifTimestamp(void) {
+NSString *KFKifTimestamp(void) {
     static NSDateFormatter *fmt = nil;
     static dispatch_once_t once;
     dispatch_once(&once, ^{
@@ -344,13 +344,13 @@ NSString *kiou_kifTimestamp(void) {
 }
 
 // ---------------------------------------------------------------------------
-// kiou_kifSanitizeSegment
+// KFKifSanitizeSegment
 //
 // Keep [A-Za-z0-9_.-], replace anything else with '_'. Truncate to
 // `maxChars` code units (NSString length, which is fine — we're already
 // only writing ASCII at this point). Falls back to @"unknown" for empty.
 // ---------------------------------------------------------------------------
-NSString *kiou_kifSanitizeSegment(NSString *s, NSUInteger maxChars) {
+NSString *KFKifSanitizeSegment(NSString *s, NSUInteger maxChars) {
     if (s.length == 0) return @"unknown";
     NSMutableString *out = [NSMutableString stringWithCapacity:s.length];
     NSCharacterSet *safe = [NSCharacterSet characterSetWithCharactersInString:
@@ -371,7 +371,7 @@ NSString *kiou_kifSanitizeSegment(NSString *s, NSUInteger maxChars) {
 }
 
 // ---------------------------------------------------------------------------
-// kiou_il2cppStringNew
+// KFIl2cppStringNew
 //
 // dlsym the runtime's il2cpp_string_new export the first time we need it
 // and cache the function pointer. Returns NULL on:
@@ -382,14 +382,14 @@ NSString *kiou_kifSanitizeSegment(NSString *s, NSUInteger maxChars) {
 //     "not present" which is what we want anyway)
 //
 // The returned il2cpp string is owned by the il2cpp runtime. See the
-// Internal.h declaration of kiou_il2cppStringNew for the GC lifetime caveat —
+// Internal.h declaration of KFIl2cppStringNew for the GC lifetime caveat —
 // the string is NOT rooted, and we rely on the conservative Boehm GC
 // scanning the live stacks during the synchronous KIFWriter.Write to
 // keep it alive. That's an implementation assumption, not a contract.
 // ---------------------------------------------------------------------------
 typedef void *(*il2cpp_string_new_t)(const char *str);
 
-void *kiou_il2cppStringNew(const char *utf8) {
+void *KFIl2cppStringNew(const char *utf8) {
     if (!utf8 || !*utf8) return NULL;
     static il2cpp_string_new_t fn = NULL;
     static dispatch_once_t once;
@@ -489,7 +489,7 @@ static NSString *kif_build_time_rule_label(void *tc) {
 }
 
 // ---------------------------------------------------------------------------
-// kiou_kifFillWriteOptions
+// KFKifFillWriteOptions
 //
 // Write the five user-visible KIFWriteOptions fields directly into `opts`.
 // `opts` MUST be a buffer that g_KIFOpts_Ctor() has already run on.
@@ -535,7 +535,7 @@ static NSString *kif_build_time_rule_label(void *tc) {
 //   - rooting each string with il2cpp_gchandle_new for the duration
 //     of KIFWriter.Write and releasing the handles afterwards.
 // ---------------------------------------------------------------------------
-void kiou_kifFillWriteOptions(void *opts,
+void KFKifFillWriteOptions(void *opts,
                             void *matchConfig,
                             void *stateStore,
                             void *gameCtrl,
@@ -663,11 +663,11 @@ void kiou_kifFillWriteOptions(void *opts,
 
     // ----- MatchTitle: "{mode} @ {iso8601}" via il2cpp_string_new.
     {
-        NSString *iso = kiou_kifTimestamp();
+        NSString *iso = KFKifTimestamp();
         NSString *title = [NSString stringWithFormat:@"%s @ %@",
                            matchModeTag ? matchModeTag : "unknown", iso];
         void *titleStr =
-            kiou_il2cppStringNew(title.UTF8String);
+            KFIl2cppStringNew(title.UTF8String);
         kif_trace_log(@"[FILL] MatchTitle il2cpp_string_new(\"%@\") = %p",
                       title, titleStr);
         if (titleStr) {
@@ -684,7 +684,7 @@ void kiou_kifFillWriteOptions(void *opts,
                       matchConfig, MC_OFF_TIME_CONTROL, tc,
                       label ?: @"(nil)");
         if (label) {
-            void *labelStr = kiou_il2cppStringNew(label.UTF8String);
+            void *labelStr = KFIl2cppStringNew(label.UTF8String);
             if (labelStr) {
                 memcpy(base + KIFOPTS_OFF_TIME_RULE_LABEL,
                        &labelStr, sizeof(void *));
@@ -700,7 +700,7 @@ void kiou_kifFillWriteOptions(void *opts,
                       gameCtrl, GC_OFF_WIN_REASON, (int)reason,
                       label ?: @"(nil — none/unset)");
         if (label) {
-            void *labelStr = kiou_il2cppStringNew(label.UTF8String);
+            void *labelStr = KFIl2cppStringNew(label.UTF8String);
             if (labelStr) {
                 memcpy(base + KIFOPTS_OFF_ENDING_LABEL,
                        &labelStr, sizeof(void *));
@@ -730,7 +730,7 @@ void kiou_kifFillWriteOptions(void *opts,
 }
 
 // ---------------------------------------------------------------------------
-// kiou_kifEnsureOutputDir
+// KFKifEnsureOutputDir
 //
 // Returns the absolute path of ~/Documents/KiouForge/, creating it if
 // necessary. NSDocumentDirectory resolves to the running app's sandbox
@@ -742,7 +742,7 @@ void kiou_kifFillWriteOptions(void *opts,
 //
 // Returns nil if NSFileManager refuses to create the directory.
 // ---------------------------------------------------------------------------
-NSString *kiou_kifEnsureOutputDir(void) {
+NSString *KFKifEnsureOutputDir(void) {
     NSArray<NSString *> *paths =
         NSSearchPathForDirectoriesInDomains(NSDocumentDirectory,
                                             NSUserDomainMask, YES);

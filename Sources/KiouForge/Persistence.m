@@ -17,7 +17,7 @@ static NSString *featureKey(KiouFeature f) {
     }
 }
 
-NSString *kiou_featureLabel(KiouFeature f) {
+NSString *KFFeatureLabel(KiouFeature f) {
     switch (f) {
         case KIOU_FEATURE_FPS_OVERRIDE:  return @"FPS Override";
         case KIOU_FEATURE_DISABLE_AFK:   return @"AFK Guard";
@@ -27,13 +27,13 @@ NSString *kiou_featureLabel(KiouFeature f) {
     }
 }
 
-bool kiou_featureHasNavigation(KiouFeature f) {
+bool KFFeatureHasNavigation(KiouFeature f) {
     // Kifu Autosave drills into a per-mode sub-screen. Everything else is
     // a plain toggle.
     return f == KIOU_FEATURE_KIFU_AUTOSAVE;
 }
 
-bool kiou_featureEnabled(KiouFeature f) {
+bool KFFeatureEnabled(KiouFeature f) {
     NSString *key = featureKey(f);
     if (!key) return false;
     NSUserDefaults *defs = [NSUserDefaults standardUserDefaults];
@@ -42,7 +42,7 @@ bool kiou_featureEnabled(KiouFeature f) {
     return [defs boolForKey:key];
 }
 
-void kiou_setFeatureEnabled(KiouFeature f, bool enabled) {
+void KFSetFeatureEnabled(KiouFeature f, bool enabled) {
     NSString *key = featureKey(f);
     if (!key) return;
     NSUserDefaults *defs = [NSUserDefaults standardUserDefaults];
@@ -68,22 +68,22 @@ static int32_t clampInt(int32_t v, int32_t lo, int32_t hi) {
     return v;
 }
 
-int32_t kiou_fpsIndex(void) {
+int32_t KFFPSIndex(void) {
     NSUserDefaults *defs = [NSUserDefaults standardUserDefaults];
     if ([defs objectForKey:kFpsIndexKey] == nil) return 4;  // index 4 = 60 fps
     return clampInt((int32_t)[defs integerForKey:kFpsIndexKey],
                     0, KIOU_FPS_PRESET_COUNT - 1);
 }
 
-void kiou_setFpsIndex(int32_t idx) {
+void KFSetFPSIndex(int32_t idx) {
     NSUserDefaults *defs = [NSUserDefaults standardUserDefaults];
     [defs setInteger:clampInt(idx, 0, KIOU_FPS_PRESET_COUNT - 1)
               forKey:kFpsIndexKey];
     [defs synchronize];
 }
 
-int32_t kiou_targetFps(void) {
-    return kFpsPresets[kiou_fpsIndex()];
+int32_t KFTargetFPS(void) {
+    return kFpsPresets[KFFPSIndex()];
 }
 
 // ---------------------------------------------------------------------------
@@ -94,7 +94,7 @@ static NSString *const kAnalysisDepthKey      = @"kiou_forge.analysis_depth";
 static NSString *const kAnalysisHashIndexKey  = @"kiou_forge.analysis_hash_idx";
 static NSString *const kAnalysisSkillLevelKey = @"kiou_forge.analysis_skill_level";
 
-int32_t kiou_analysisDepth(void) {
+int32_t KFAnalysisDepth(void) {
     // Match the retail KifuDetailPopupAnalysisPresenter.SearchDepth default (15).
     // Users raise it for stronger analysis at the cost of longer run time.
     NSUserDefaults *defs = [NSUserDefaults standardUserDefaults];
@@ -102,7 +102,7 @@ int32_t kiou_analysisDepth(void) {
     return clampInt((int32_t)[defs integerForKey:kAnalysisDepthKey], 1, 36);
 }
 
-void kiou_setAnalysisDepth(int32_t v) {
+void KFSetAnalysisDepth(int32_t v) {
     NSUserDefaults *defs = [NSUserDefaults standardUserDefaults];
     [defs setInteger:clampInt(v, 1, 36) forKey:kAnalysisDepthKey];
     [defs synchronize];
@@ -114,31 +114,31 @@ static const int32_t kAnalysisHashPresetsMB[KIOU_ANALYSIS_HASH_PRESET_COUNT] = {
     16, 64, 128, 256, 512, 1024
 };
 
-int32_t kiou_analysisHashIndex(void) {
+int32_t KFAnalysisHashIndex(void) {
     NSUserDefaults *defs = [NSUserDefaults standardUserDefaults];
     if ([defs objectForKey:kAnalysisHashIndexKey] == nil) return 0;  // 16 MB
     return clampInt((int32_t)[defs integerForKey:kAnalysisHashIndexKey],
                     0, KIOU_ANALYSIS_HASH_PRESET_COUNT - 1);
 }
 
-void kiou_setAnalysisHashIndex(int32_t idx) {
+void KFSetAnalysisHashIndex(int32_t idx) {
     NSUserDefaults *defs = [NSUserDefaults standardUserDefaults];
     [defs setInteger:clampInt(idx, 0, KIOU_ANALYSIS_HASH_PRESET_COUNT - 1)
               forKey:kAnalysisHashIndexKey];
     [defs synchronize];
 }
 
-int32_t kiou_analysisHashMB(void) {
-    return kAnalysisHashPresetsMB[kiou_analysisHashIndex()];
+int32_t KFAnalysisHashMB(void) {
+    return kAnalysisHashPresetsMB[KFAnalysisHashIndex()];
 }
 
-int32_t kiou_analysisSkillLevel(void) {
+int32_t KFAnalysisSkillLevel(void) {
     NSUserDefaults *defs = [NSUserDefaults standardUserDefaults];
     if ([defs objectForKey:kAnalysisSkillLevelKey] == nil) return 20;
     return clampInt((int32_t)[defs integerForKey:kAnalysisSkillLevelKey], 1, 20);
 }
 
-void kiou_setAnalysisSkillLevel(int32_t v) {
+void KFSetAnalysisSkillLevel(int32_t v) {
     NSUserDefaults *defs = [NSUserDefaults standardUserDefaults];
     [defs setInteger:clampInt(v, 1, 20) forKey:kAnalysisSkillLevelKey];
     [defs synchronize];
@@ -162,7 +162,7 @@ static NSString *kifuModeKey(KiouMatchMode m) {
     }
 }
 
-NSString *kiou_kifuModeLabel(KiouMatchMode m) {
+NSString *KFKifuModeLabel(KiouMatchMode m) {
     switch (m) {
         case KIOU_MMODE_AI_MATCH:      return @"AI Match";
         case KIOU_MMODE_CPU_STREAM:    return @"CPU Stream";
@@ -173,7 +173,7 @@ NSString *kiou_kifuModeLabel(KiouMatchMode m) {
     }
 }
 
-bool kiou_kifuModeEnabled(KiouMatchMode m) {
+bool KFKifuModeEnabled(KiouMatchMode m) {
     NSString *key = kifuModeKey(m);
     if (!key) return false;
     NSUserDefaults *defs = [NSUserDefaults standardUserDefaults];
@@ -182,7 +182,7 @@ bool kiou_kifuModeEnabled(KiouMatchMode m) {
     return [defs boolForKey:key];
 }
 
-void kiou_setKifuModeEnabled(KiouMatchMode m, bool enabled) {
+void KFSetKifuModeEnabled(KiouMatchMode m, bool enabled) {
     NSString *key = kifuModeKey(m);
     if (!key) return;
     NSUserDefaults *defs = [NSUserDefaults standardUserDefaults];

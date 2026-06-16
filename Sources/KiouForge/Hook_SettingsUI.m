@@ -143,25 +143,25 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
         //                            "3 of 5") + disclosure indicator.
         // We dequeue under distinct identifiers so the cached style stays
         // correct across reuse.
-        if (kiou_featureHasNavigation(f)) {
+        if (KFFeatureHasNavigation(f)) {
             static NSString *kId = @"feature-nav";
             UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:kId];
             if (!cell) {
                 cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleValue1
                                               reuseIdentifier:kId];
             }
-            cell.textLabel.text = kiou_featureLabel(f);
+            cell.textLabel.text = KFFeatureLabel(f);
             cell.accessoryView = nil;  // disclosure indicator below
             cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
             cell.selectionStyle = UITableViewCellSelectionStyleDefault;
             // Caption: master state + per-mode count for Kifu Autosave.
             if (f == KIOU_FEATURE_KIFU_AUTOSAVE) {
-                if (!kiou_featureEnabled(f)) {
+                if (!KFFeatureEnabled(f)) {
                     cell.detailTextLabel.text = @"Off";
                 } else {
                     int32_t on = 0;
                     for (int i = 0; i < KIOU_MMODE_COUNT; i++) {
-                        if (kiou_kifuModeEnabled((KiouMatchMode)i)) on++;
+                        if (KFKifuModeEnabled((KiouMatchMode)i)) on++;
                     }
                     cell.detailTextLabel.text =
                         [NSString stringWithFormat:@"%d of %ld",
@@ -169,7 +169,7 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
                 }
             } else {
                 cell.detailTextLabel.text =
-                    kiou_featureEnabled(f) ? @"On" : @"Off";
+                    KFFeatureEnabled(f) ? @"On" : @"Off";
             }
             cell.detailTextLabel.textColor = UIColor.secondaryLabelColor;
             return cell;
@@ -182,9 +182,9 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
                                           reuseIdentifier:kId];
             cell.selectionStyle = UITableViewCellSelectionStyleNone;
         }
-        cell.textLabel.text = kiou_featureLabel(f);
+        cell.textLabel.text = KFFeatureLabel(f);
         UISwitch *sw = [[UISwitch alloc] init];
-        sw.on = kiou_featureEnabled(f);
+        sw.on = KFFeatureEnabled(f);
         sw.tag = f;
         [sw addTarget:self action:@selector(onFeatureToggle:)
      forControlEvents:UIControlEventValueChanged];
@@ -206,7 +206,7 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
         stepper.continuous = NO;
 
         // Only one row in Performance (FPS) for now.
-        int32_t idx = kiou_fpsIndex();
+        int32_t idx = KFFPSIndex();
         cell.textLabel.text = @"FPS";
         cell.detailTextLabel.text = [NSString stringWithFormat:@"%d", kFpsPresets[idx]];
         self.fpsValueLabel = cell.detailTextLabel;
@@ -235,17 +235,17 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
         if (indexPath.row == KF_ENGINE_ROW_DEPTH) {
             cell.textLabel.text = @"Analysis Depth";
             cell.detailTextLabel.text = [NSString stringWithFormat:@"%d",
-                                         (int)kiou_analysisDepth()];
+                                         (int)KFAnalysisDepth()];
             self.depthValueLabel = cell.detailTextLabel;
             stepper.minimumValue = 1;
             stepper.maximumValue = 36;
             stepper.stepValue    = 1;
-            stepper.value        = kiou_analysisDepth();
+            stepper.value        = KFAnalysisDepth();
             [stepper addTarget:self action:@selector(onDepthChanged:)
                 forControlEvents:UIControlEventValueChanged];
 
         } else if (indexPath.row == KF_ENGINE_ROW_HASH) {
-            int32_t idx = kiou_analysisHashIndex();
+            int32_t idx = KFAnalysisHashIndex();
             cell.textLabel.text = @"Analysis Hash";
             cell.detailTextLabel.text = [NSString stringWithFormat:@"%d MB", kHashPresets[idx]];
             self.hashValueLabel = cell.detailTextLabel;
@@ -259,12 +259,12 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
         } else { // KF_ENGINE_ROW_SKILL
             cell.textLabel.text = @"Analysis Skill";
             cell.detailTextLabel.text = [NSString stringWithFormat:@"%d",
-                                         (int)kiou_analysisSkillLevel()];
+                                         (int)KFAnalysisSkillLevel()];
             self.skillValueLabel = cell.detailTextLabel;
             stepper.minimumValue = 1;
             stepper.maximumValue = 20;
             stepper.stepValue    = 1;
-            stepper.value        = kiou_analysisSkillLevel();
+            stepper.value        = KFAnalysisSkillLevel();
             [stepper addTarget:self action:@selector(onSkillChanged:)
                 forControlEvents:UIControlEventValueChanged];
         }
@@ -296,7 +296,7 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
 
     if (indexPath.section == KF_SECTION_FEATURES) {
         KiouFeature f = (KiouFeature)indexPath.row;
-        if (!kiou_featureHasNavigation(f)) return;
+        if (!KFFeatureHasNavigation(f)) return;
         if (f == KIOU_FEATURE_KIFU_AUTOSAVE) {
             KFKifuModesViewController *vc = [[KFKifuModesViewController alloc] init];
             [self.navigationController pushViewController:vc animated:YES];
@@ -316,15 +316,15 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
 
 - (void)onFeatureToggle:(UISwitch *)sw {
     KiouFeature f = (KiouFeature)sw.tag;
-    kiou_setFeatureEnabled(f, sw.isOn);
+    KFSetFeatureEnabled(f, sw.isOn);
     file_log([NSString stringWithFormat:
-              @"[SETTINGS] %@ -> %@", kiou_featureLabel(f), sw.isOn ? @"ON" : @"OFF"]);
+              @"[SETTINGS] %@ -> %@", KFFeatureLabel(f), sw.isOn ? @"ON" : @"OFF"]);
 }
 
 - (void)onFpsChanged:(UIStepper *)stepper {
     int32_t idx = (int32_t)stepper.value;
-    kiou_setFpsIndex(idx);
-    int32_t fps = kiou_targetFps();
+    KFSetFPSIndex(idx);
+    int32_t fps = KFTargetFPS();
     self.fpsValueLabel.text = [NSString stringWithFormat:@"%d", fps];
     KFApplyFPS(fps);  // apply immediately
     file_log([NSString stringWithFormat:@"[SETTINGS] fps -> %d (idx=%d)", fps, idx]);
@@ -332,22 +332,22 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
 
 - (void)onDepthChanged:(UIStepper *)stepper {
     int32_t v = (int32_t)stepper.value;
-    kiou_setAnalysisDepth(v);
+    KFSetAnalysisDepth(v);
     self.depthValueLabel.text = [NSString stringWithFormat:@"%d", v];
     file_log([NSString stringWithFormat:@"[SETTINGS] analysis depth -> %d", v]);
 }
 
 - (void)onHashChanged:(UIStepper *)stepper {
     int32_t idx = (int32_t)stepper.value;
-    kiou_setAnalysisHashIndex(idx);
-    int32_t mb = kiou_analysisHashMB();
+    KFSetAnalysisHashIndex(idx);
+    int32_t mb = KFAnalysisHashMB();
     self.hashValueLabel.text = [NSString stringWithFormat:@"%d MB", mb];
     file_log([NSString stringWithFormat:@"[SETTINGS] analysis hash -> %d MB (idx=%d)", mb, idx]);
 }
 
 - (void)onSkillChanged:(UIStepper *)stepper {
     int32_t v = (int32_t)stepper.value;
-    kiou_setAnalysisSkillLevel(v);
+    KFSetAnalysisSkillLevel(v);
     self.skillValueLabel.text = [NSString stringWithFormat:@"%d", v];
     file_log([NSString stringWithFormat:@"[SETTINGS] analysis skill -> %d", v]);
 }
@@ -359,12 +359,12 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
 //
 // Pushed by the root controller when the Kifu Autosave row is tapped. One
 // section, KIOU_MMODE_COUNT rows (AI / CPUStream / LocalPvP / OnlinePvP /
-// RecordReplay), each a UISwitch on `kiou_kifuModeEnabled(mode)`.
+// RecordReplay), each a UISwitch on `KFKifuModeEnabled(mode)`.
 //
 // Independent of the master KIOU_FEATURE_KIFU_AUTOSAVE flag — the master
 // stays where it is on the root screen; this screen edits only the per-mode
 // flags. The on-device hook (Hook_KifuObserve.m's
-// kiou_kifuObserveMatchEnd) gates emission on BOTH the master and the
+// KFKifuObserveMatchEnd) gates emission on BOTH the master and the
 // per-mode flag.
 // ===========================================================================
 
@@ -405,9 +405,9 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
         cell.selectionStyle = UITableViewCellSelectionStyleNone;
     }
     KiouMatchMode m = (KiouMatchMode)indexPath.row;
-    cell.textLabel.text = kiou_kifuModeLabel(m);
+    cell.textLabel.text = KFKifuModeLabel(m);
     UISwitch *sw = [[UISwitch alloc] init];
-    sw.on = kiou_kifuModeEnabled(m);
+    sw.on = KFKifuModeEnabled(m);
     sw.tag = m;
     [sw addTarget:self action:@selector(onModeToggle:)
  forControlEvents:UIControlEventValueChanged];
@@ -417,10 +417,10 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
 
 - (void)onModeToggle:(UISwitch *)sw {
     KiouMatchMode m = (KiouMatchMode)sw.tag;
-    kiou_setKifuModeEnabled(m, sw.isOn);
+    KFSetKifuModeEnabled(m, sw.isOn);
     file_log([NSString stringWithFormat:
               @"[SETTINGS] kifu mode %@ -> %@",
-              kiou_kifuModeLabel(m), sw.isOn ? @"ON" : @"OFF"]);
+              KFKifuModeLabel(m), sw.isOn ? @"ON" : @"OFF"]);
 }
 
 @end

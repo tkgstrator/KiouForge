@@ -9,7 +9,7 @@
 //
 // Strategy:
 //   - Hook set_targetFrameRate; when KIOU_FEATURE_FPS_OVERRIDE is on,
-//     replace `value` with kiou_targetFps() before forwarding to orig.
+//     replace `value` with KFTargetFPS() before forwarding to orig.
 //     This intercepts the game's own 30/60 set and rewrites it.
 //   - When the settings slider changes, KFApplyFPS() calls set_targetFrameRate
 //     directly via the resolved function pointer so the change takes effect
@@ -35,8 +35,8 @@ static SetTargetFrameRate_t orig_set_targetFrameRate = NULL;
 static uintptr_t g_unityBaseForFPS = 0;
 
 static void hook_set_targetFrameRate(int32_t value, void *mi) {
-    int32_t v = kiou_featureEnabled(KIOU_FEATURE_FPS_OVERRIDE)
-              ? kiou_targetFps() : value;
+    int32_t v = KFFeatureEnabled(KIOU_FEATURE_FPS_OVERRIDE)
+              ? KFTargetFPS() : value;
     if (v != value) {
         file_log([NSString stringWithFormat:
                   @"[FPS] set_targetFrameRate %d -> %d (override)", value, v]);
@@ -56,7 +56,7 @@ void KFApplyFPS(int32_t fps) {
 }
 
 #ifndef IPA_BINPATCH
-void install_FrameRate_hook(uintptr_t unityBase) {
+void KFInstallFrameRateHook(uintptr_t unityBase) {
     g_unityBaseForFPS = unityBase;
     uintptr_t addr = unityBase + RVA_SET_TARGET_FRAMERATE;
     MSHookFunction((void *)addr,
@@ -64,20 +64,20 @@ void install_FrameRate_hook(uintptr_t unityBase) {
                    (void **)&orig_set_targetFrameRate);
     file_log([NSString stringWithFormat:
               @"Application.set_targetFrameRate hooked @0x%lx (base+0x%x) fps=%d",
-              (unsigned long)addr, RVA_SET_TARGET_FRAMERATE, (int)kiou_targetFps()]);
+              (unsigned long)addr, RVA_SET_TARGET_FRAMERATE, (int)KFTargetFPS()]);
 }
 #else
-void publish_FrameRate_slots(uintptr_t unityBase) {
+void KFPublishFrameRateSlots(uintptr_t unityBase) {
     g_unityBaseForFPS = unityBase;
-    g_kiou_hook_slot[KIOU_SLOT_SET_TARGET_FRAMERATE] =
+    g_kfHookSlot[KIOU_SLOT_SET_TARGET_FRAMERATE] =
         (void *)hook_set_targetFrameRate;
     orig_set_targetFrameRate = (SetTargetFrameRate_t)
-        kiou_resolve_orig_trampoline(unityBase, RVA_SET_TARGET_FRAMERATE);
+        KFResolveOrigTrampoline(unityBase, RVA_SET_TARGET_FRAMERATE);
     file_log([NSString stringWithFormat:
               @"[BINPATCH] set_targetFrameRate: slot[%d]=%p orig=%p fps=%d",
               KIOU_SLOT_SET_TARGET_FRAMERATE,
-              g_kiou_hook_slot[KIOU_SLOT_SET_TARGET_FRAMERATE],
+              g_kfHookSlot[KIOU_SLOT_SET_TARGET_FRAMERATE],
               (void *)orig_set_targetFrameRate,
-              (int)kiou_targetFps()]);
+              (int)KFTargetFPS()]);
 }
 #endif

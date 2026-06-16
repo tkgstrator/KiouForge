@@ -126,7 +126,7 @@ KIOU_SLOT_KIFU_OBSERVE             = 6
 #
 #   "entry"    : the hook REPLACES the original. The cave BLRs the slot
 #                with orig's args, then runs the displaced prologue +
-#                B orig+4 (so chain-back via kiou_resolve_orig_trampoline
+#                B orig+4 (so chain-back via KFResolveOrigTrampoline
 #                works). Used for FPS / AFK / engine tuning / version stamp.
 #
 #   "observer" : the hook PEEKS BEFORE orig runs. The cave saves caller

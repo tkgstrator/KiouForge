@@ -66,7 +66,7 @@ static void hook_TitleScene_MoveNext(void *sm) {
 // uses this to compare pre-/post-MSHookFunction state so we can tell whether
 // the inline patch actually landed in memory (a true patch typically replaces
 // the prologue with an `LDR x16, ...; BR x16` trampoline shape).
-static NSString *kiou_hexAt(uintptr_t addr) {
+static NSString *kfHexAt(uintptr_t addr) {
     const uint8_t *p = (const uint8_t *)addr;
     NSMutableString *s = [NSMutableString stringWithCapacity:48];
     @try {
@@ -80,7 +80,7 @@ static NSString *kiou_hexAt(uintptr_t addr) {
 }
 
 #ifndef IPA_BINPATCH
-void install_Version_hook(uintptr_t unityBase) {
+void KFInstallVersionHook(uintptr_t unityBase) {
     p_il2cpp_string_new =
         (il2cpp_string_new_t)dlsym(RTLD_DEFAULT, "il2cpp_string_new");
     if (!p_il2cpp_string_new) {
@@ -89,7 +89,7 @@ void install_Version_hook(uintptr_t unityBase) {
     }
     uintptr_t addr = unityBase + RVA_TITLESCENE_MOVENEXT;
 
-    NSString *before = kiou_hexAt(addr);
+    NSString *before = kfHexAt(addr);
     file_log([NSString stringWithFormat:
               @"[VERSION-DIAG] before MSHookFunction @0x%lx: %@", addr, before]);
 
@@ -97,7 +97,7 @@ void install_Version_hook(uintptr_t unityBase) {
                    (void *)hook_TitleScene_MoveNext,
                    (void **)&orig_TitleScene_MoveNext);
 
-    NSString *after = kiou_hexAt(addr);
+    NSString *after = kfHexAt(addr);
     file_log([NSString stringWithFormat:
               @"[VERSION-DIAG] after  MSHookFunction @0x%lx: %@", addr, after]);
     file_log([NSString stringWithFormat:
@@ -110,7 +110,7 @@ void install_Version_hook(uintptr_t unityBase) {
               KIOU_FORGE_COMMIT]);
 }
 #else  // IPA_BINPATCH
-void publish_Version_slots(uintptr_t unityBase) {
+void KFPublishVersionSlots(uintptr_t unityBase) {
     p_il2cpp_string_new =
         (il2cpp_string_new_t)dlsym(RTLD_DEFAULT, "il2cpp_string_new");
     if (!p_il2cpp_string_new) {
@@ -118,19 +118,19 @@ void publish_Version_slots(uintptr_t unityBase) {
         // Carry on and still publish the slot; the hook body has a NULL
         // guard on p_il2cpp_string_new and falls through to orig.
     }
-    g_kiou_hook_slot[KIOU_SLOT_TITLE_SCENE_MOVENEXT] =
+    g_kfHookSlot[KIOU_SLOT_TITLE_SCENE_MOVENEXT] =
         (void *)hook_TitleScene_MoveNext;
     orig_TitleScene_MoveNext = (TitleSceneMoveNext_t)
-        kiou_resolve_orig_trampoline(unityBase, RVA_TITLESCENE_MOVENEXT);
+        KFResolveOrigTrampoline(unityBase, RVA_TITLESCENE_MOVENEXT);
 
-    // kiou_hexAt() is useful pre/post a runtime MSHookFunction inline rewrite
+    // kfHexAt() is useful pre/post a runtime MSHookFunction inline rewrite
     // but is misleading here: the static patcher overwrites the first 4 bytes
     // of the site with `B <cave>` BEFORE the dylib loads, so there is no
     // "before/after" to compare from the dylib's perspective.
     file_log([NSString stringWithFormat:
               @"[BINPATCH] TitleScene.MoveNext: slot[%d]=%p orig=%p, commit=%s",
               KIOU_SLOT_TITLE_SCENE_MOVENEXT,
-              g_kiou_hook_slot[KIOU_SLOT_TITLE_SCENE_MOVENEXT],
+              g_kfHookSlot[KIOU_SLOT_TITLE_SCENE_MOVENEXT],
               (void *)orig_TitleScene_MoveNext,
               KIOU_FORGE_COMMIT]);
 }

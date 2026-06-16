@@ -23,14 +23,14 @@ typedef bool (*IsAfkEnabled_t)(void *self);
 static IsAfkEnabled_t orig_GO_IsAfkEnabled = NULL;
 
 static bool hook_GO_IsAfkEnabled(void *self) {
-    if (kiou_featureEnabled(KIOU_FEATURE_DISABLE_AFK)) {
+    if (KFFeatureEnabled(KIOU_FEATURE_DISABLE_AFK)) {
         return false;
     }
     return orig_GO_IsAfkEnabled ? orig_GO_IsAfkEnabled(self) : true;
 }
 
 #ifndef IPA_BINPATCH
-void install_AfkDisable_hook(uintptr_t unityBase) {
+void KFInstallAfkDisableHook(uintptr_t unityBase) {
     uintptr_t addr = unityBase + RVA_GAME_ORCHESTRATOR_IS_AFK_ENABLED;
     MSHookFunction((void *)addr,
                    (void *)hook_GO_IsAfkEnabled,
@@ -40,16 +40,16 @@ void install_AfkDisable_hook(uintptr_t unityBase) {
               (unsigned long)addr, RVA_GAME_ORCHESTRATOR_IS_AFK_ENABLED]);
 }
 #else
-void publish_AfkDisable_slots(uintptr_t unityBase) {
-    g_kiou_hook_slot[KIOU_SLOT_GAME_ORCHESTRATOR_IS_AFK] =
+void KFPublishAfkDisableSlots(uintptr_t unityBase) {
+    g_kfHookSlot[KIOU_SLOT_GAME_ORCHESTRATOR_IS_AFK] =
         (void *)hook_GO_IsAfkEnabled;
     orig_GO_IsAfkEnabled = (IsAfkEnabled_t)
-        kiou_resolve_orig_trampoline(unityBase,
+        KFResolveOrigTrampoline(unityBase,
                                      RVA_GAME_ORCHESTRATOR_IS_AFK_ENABLED);
     file_log([NSString stringWithFormat:
               @"[BINPATCH] GameOrchestrator.IsAfkEnabled: slot[%d]=%p orig=%p",
               KIOU_SLOT_GAME_ORCHESTRATOR_IS_AFK,
-              g_kiou_hook_slot[KIOU_SLOT_GAME_ORCHESTRATOR_IS_AFK],
+              g_kfHookSlot[KIOU_SLOT_GAME_ORCHESTRATOR_IS_AFK],
               (void *)orig_GO_IsAfkEnabled]);
 }
 #endif

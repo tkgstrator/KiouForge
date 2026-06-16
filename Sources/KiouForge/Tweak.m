@@ -7,7 +7,7 @@
 // KiouForge — entry point.
 //
 // Distribution shapes:
-//   JB rootless / jailed (Dobby static): install_*_hook() patches the
+//   JB rootless / jailed (Dobby static): KFInstall*Hook() patches the
 //     UnityFramework at runtime via MSHookFunction / DobbyHook.
 //   Binpatch (make ipa): UnityFramework is statically rewritten so each
 //     site BLs into a __TEXT cave; the dylib publishes hook pointers into
@@ -17,8 +17,8 @@
 #if IPA_BINPATCH
 
 static void tryBootstrap(void) {
-    if (!kiou_binpatch_published()) kiou_binpatch_bootstrap();
-    if (!kiou_binpatch_published()) {
+    if (!KFBinpatchPublished()) KFBinpatchBootstrap();
+    if (!KFBinpatchPublished()) {
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)),
                        dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
             tryBootstrap();
@@ -50,11 +50,11 @@ static void installUnityHooks(void) {
               @"UnityFramework base=0x%lx (%s)",
               (unsigned long)unityBase, unityName ? unityName : "?"]);
 
-    install_FrameRate_hook(unityBase);
-    install_AfkDisable_hook(unityBase);
-    install_AnalysisTune_hook(unityBase);
-    install_Version_hook(unityBase);
-    install_KifuObserve_hook(unityBase);
+    KFInstallFrameRateHook(unityBase);
+    KFInstallAfkDisableHook(unityBase);
+    KFInstallAnalysisTuneHook(unityBase);
+    KFInstallVersionHook(unityBase);
+    KFInstallKifuObserveHook(unityBase);
 
     g_unityHooked = YES;
     file_log(@"=== All KiouForge hooks installed ===");

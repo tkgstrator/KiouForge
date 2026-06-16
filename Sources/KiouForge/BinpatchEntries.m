@@ -12,33 +12,33 @@
 // Sources/Common/binpatch.h for the full wiring explanation.
 //
 // Adding a new hook: add its slot to binpatch_sites.h, add a
-// publish_*_slots() extern to Internal.h, and add a call here in
-// publish_all(). The recipe's _SITES table and KIOU_SLOT_COUNT must match.
+// KFPublish*Slots() extern to Internal.h, and add a call here in
+// kfPublishAll(). The recipe's _SITES table and KIOU_SLOT_COUNT must match.
 // ===========================================================================
 
-void **g_kiou_hook_slot = NULL;
+void **g_kfHookSlot = NULL;
 
-uintptr_t kiou_resolve_orig_trampoline(uintptr_t unityBase, uintptr_t siteRVA) {
+uintptr_t KFResolveOrigTrampoline(uintptr_t unityBase, uintptr_t siteRVA) {
     return ipa_binpatch_resolve_orig(unityBase, siteRVA,
                                      KIOU_BINPATCH_CAVE_PAYLOAD_SIZE);
 }
 
 static BOOL g_kiou_binpatch_published = NO;
 
-static void publish_all(uintptr_t unityBase) {
-    g_kiou_hook_slot = (void **)(unityBase + KIOU_HOOK_SLOT_BASE_RVA);
+static void kfPublishAll(uintptr_t unityBase) {
+    g_kfHookSlot = (void **)(unityBase + KIOU_HOOK_SLOT_BASE_RVA);
     file_log([NSString stringWithFormat:
               @"[binpatch] slot base=%p (unityBase+0x%X)",
-              (void *)g_kiou_hook_slot, KIOU_HOOK_SLOT_BASE_RVA]);
+              (void *)g_kfHookSlot, KIOU_HOOK_SLOT_BASE_RVA]);
 
-    publish_FrameRate_slots(unityBase);
-    publish_AfkDisable_slots(unityBase);
-    publish_AnalysisTune_slots(unityBase);
-    publish_Version_slots(unityBase);
-    publish_KifuObserve_slots(unityBase);
+    KFPublishFrameRateSlots(unityBase);
+    KFPublishAfkDisableSlots(unityBase);
+    KFPublishAnalysisTuneSlots(unityBase);
+    KFPublishVersionSlots(unityBase);
+    KFPublishKifuObserveSlots(unityBase);
 }
 
-void kiou_binpatch_bootstrap(void) {
+void KFBinpatchBootstrap(void) {
     if (g_kiou_binpatch_published) return;
 
     uintptr_t unityBase = ipa_binpatch_find_image("UnityFramework");
@@ -48,12 +48,12 @@ void kiou_binpatch_bootstrap(void) {
               @"[binpatch] UnityFramework base=0x%lx",
               (unsigned long)unityBase]);
 
-    publish_all(unityBase);
+    kfPublishAll(unityBase);
     g_kiou_binpatch_published = YES;
     file_log(@"[binpatch] === all slots published ===");
 }
 
-BOOL kiou_binpatch_published(void) {
+BOOL KFBinpatchPublished(void) {
     return g_kiou_binpatch_published;
 }
 

@@ -45,7 +45,7 @@ enum {
 // slot that subsumes KKE's role).
 // ---------------------------------------------------------------------------
 #define KIOU_HOOK_SLOT_BASE_RVA  0x8F90CA0   // 0x8F90CD8 - 7*8
-extern void **g_kiou_hook_slot;
+extern void **g_kfHookSlot;
 
 // ---------------------------------------------------------------------------
 // Cave payload size — must match recipes/kiouforge.py::CAVE_PAYLOAD_SIZE.
@@ -55,7 +55,7 @@ extern void **g_kiou_hook_slot;
 // ---------------------------------------------------------------------------
 // Orig-trampoline resolver (thin wrapper over ipa_binpatch_resolve_orig).
 // ---------------------------------------------------------------------------
-uintptr_t kiou_resolve_orig_trampoline(uintptr_t unityBase, uintptr_t siteRVA);
+uintptr_t KFResolveOrigTrampoline(uintptr_t unityBase, uintptr_t siteRVA);
 
 // ---------------------------------------------------------------------------
 // Site RVAs (KIOU 1.0.1 build 11 UnityFramework).

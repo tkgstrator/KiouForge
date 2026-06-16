@@ -49,19 +49,19 @@ static inline void writeI32(void *base, uintptr_t off, int32_t val) {
 // ---------------------------------------------------------------------------
 
 #if IPA_BINPATCH
-void publish_FrameRate_slots(uintptr_t unityBase);
-void publish_AfkDisable_slots(uintptr_t unityBase);
-void publish_AnalysisTune_slots(uintptr_t unityBase);
-void publish_Version_slots(uintptr_t unityBase);
-void publish_KifuObserve_slots(uintptr_t unityBase);
-void kiou_binpatch_bootstrap(void);
-BOOL kiou_binpatch_published(void);
+void KFPublishFrameRateSlots(uintptr_t unityBase);
+void KFPublishAfkDisableSlots(uintptr_t unityBase);
+void KFPublishAnalysisTuneSlots(uintptr_t unityBase);
+void KFPublishVersionSlots(uintptr_t unityBase);
+void KFPublishKifuObserveSlots(uintptr_t unityBase);
+void KFBinpatchBootstrap(void);
+BOOL KFBinpatchPublished(void);
 #else
-void install_FrameRate_hook(uintptr_t unityBase);
-void install_AfkDisable_hook(uintptr_t unityBase);
-void install_AnalysisTune_hook(uintptr_t unityBase);
-void install_Version_hook(uintptr_t unityBase);
-void install_KifuObserve_hook(uintptr_t unityBase);
+void KFInstallFrameRateHook(uintptr_t unityBase);
+void KFInstallAfkDisableHook(uintptr_t unityBase);
+void KFInstallAnalysisTuneHook(uintptr_t unityBase);
+void KFInstallVersionHook(uintptr_t unityBase);
+void KFInstallKifuObserveHook(uintptr_t unityBase);
 #endif
 
 // UnityFramework base address captured at install/publish time. Read by the
@@ -118,20 +118,20 @@ typedef struct { void *r0; void *r1; } KFUniTaskRet;
 //   x0 = self (the IMatchMode instance)
 //   x1 = ct   (CancellationToken)
 //   x2 = mode_index (KiouMatchMode, injected by cave's MOVZ X2,#imm)
-KFUniTaskRet kiou_kifuObserveMatchEnd(void *self, void *ct, uint32_t mode_index);
+KFUniTaskRet KFKifuObserveMatchEnd(void *self, void *ct, uint32_t mode_index);
 
 // Kif_Writer pipeline.
-NSString *kiou_kifWriterEmit(void *gameCtrl,
+NSString *KFKifWriterEmit(void *gameCtrl,
                              void *matchConfig,
                              void *stateStore,
                              const char *matchModeTag);
 
 // Helpers.
-NSString *kiou_kifTimestamp(void);
-NSString *kiou_kifSanitizeSegment(NSString *s, NSUInteger maxChars);
-NSString *kiou_kifEnsureOutputDir(void);
-NSString *kiou_kifDescribeStartpos(void *gameCtrl);
-NSString *kiou_kifTextFromGameController(void *gameCtrl,
+NSString *KFKifTimestamp(void);
+NSString *KFKifSanitizeSegment(NSString *s, NSUInteger maxChars);
+NSString *KFKifEnsureOutputDir(void);
+NSString *KFKifDescribeStartpos(void *gameCtrl);
+NSString *KFKifTextFromGameController(void *gameCtrl,
                                          void *matchConfig,
                                          void *stateStore,
                                          const char *matchModeTag);
@@ -144,8 +144,8 @@ NSString *kiou_kifTextFromGameController(void *gameCtrl,
 #define KIFOPTS_OFF_TIME_RULE_LABEL   0x38
 #define KIFOPTS_OFF_ENDING_LABEL      0x48
 
-void *kiou_il2cppStringNew(const char *utf8);
-void  kiou_kifFillWriteOptions(void *opts,
+void *KFIl2cppStringNew(const char *utf8);
+void  KFKifFillWriteOptions(void *opts,
                                void *matchConfig,
                                void *stateStore,
                                void *gameCtrl,
@@ -162,14 +162,14 @@ typedef NS_ENUM(NSInteger, KiouFeature) {
     KIOU_FEATURE_COUNT,
 };
 
-bool kiou_featureEnabled(KiouFeature f);
-void kiou_setFeatureEnabled(KiouFeature f, bool enabled);
-NSString *kiou_featureLabel(KiouFeature f);
+bool KFFeatureEnabled(KiouFeature f);
+void KFSetFeatureEnabled(KiouFeature f, bool enabled);
+NSString *KFFeatureLabel(KiouFeature f);
 
 // True when this feature row should push a sub-screen for fine-grained
 // configuration (e.g. KIFU_AUTOSAVE has per-mode toggles). The settings UI
 // uses this to choose between a row-with-UISwitch vs. a row-with-disclosure.
-bool kiou_featureHasNavigation(KiouFeature f);
+bool KFFeatureHasNavigation(KiouFeature f);
 
 // ---------------------------------------------------------------------------
 // Per-match-mode toggles for kifu autosave.
@@ -188,9 +188,9 @@ typedef NS_ENUM(NSInteger, KiouMatchMode) {
     KIOU_MMODE_COUNT,
 };
 
-bool      kiou_kifuModeEnabled(KiouMatchMode m);
-void      kiou_setKifuModeEnabled(KiouMatchMode m, bool enabled);
-NSString *kiou_kifuModeLabel(KiouMatchMode m);
+bool      KFKifuModeEnabled(KiouMatchMode m);
+void      KFSetKifuModeEnabled(KiouMatchMode m, bool enabled);
+NSString *KFKifuModeLabel(KiouMatchMode m);
 
 // IMatchMode self -> _gameAdapter field offsets. The enum order MUST match
 // the observer rows of _SITES in recipes/kiouforge.py — the recipe bakes
@@ -214,16 +214,16 @@ static const char *const kKiouMatchModeTags[KIOU_MMODE_COUNT] = {
 // ---------------------------------------------------------------------------
 // FPS preset table and accessor.
 //
-//   kiou_targetFps()  — resolved FPS value from the user's chosen preset
-//   kiou_fpsIndex()   — preset index [0, KIOU_FPS_PRESET_COUNT)
-//   kiou_setFpsIndex()
+//   KFTargetFPS()  — resolved FPS value from the user's chosen preset
+//   KFFPSIndex()   — preset index [0, KIOU_FPS_PRESET_COUNT)
+//   KFSetFPSIndex()
 // ---------------------------------------------------------------------------
 #define KIOU_FPS_PRESET_COUNT  7
 // Presets (preset[i] is the FPS value): {15,24,30,45,60,90,120}
 
-int32_t kiou_targetFps(void);
-int32_t kiou_fpsIndex(void);
-void    kiou_setFpsIndex(int32_t idx);
+int32_t KFTargetFPS(void);
+int32_t KFFPSIndex(void);
+void    KFSetFPSIndex(int32_t idx);
 
 // ---------------------------------------------------------------------------
 // Analysis engine tuning (NativeSyncSession post-game path only).
@@ -236,14 +236,14 @@ void    kiou_setFpsIndex(int32_t idx);
 //   range 1..36; default 15 (retail SearchDepth constant).
 //   Stored as a plain int — no preset table.
 // ---------------------------------------------------------------------------
-int32_t kiou_analysisDepth(void);
-void    kiou_setAnalysisDepth(int32_t v);
+int32_t KFAnalysisDepth(void);
+void    KFSetAnalysisDepth(int32_t v);
 
 #define KIOU_ANALYSIS_HASH_PRESET_COUNT  6
 // Presets: {16, 64, 128, 256, 512, 1024}
 
-int32_t kiou_analysisHashIndex(void);
-void    kiou_setAnalysisHashIndex(int32_t idx);
-int32_t kiou_analysisHashMB(void);
-int32_t kiou_analysisSkillLevel(void);
-void    kiou_setAnalysisSkillLevel(int32_t v);
+int32_t KFAnalysisHashIndex(void);
+void    KFSetAnalysisHashIndex(int32_t idx);
+int32_t KFAnalysisHashMB(void);
+int32_t KFAnalysisSkillLevel(void);
+void    KFSetAnalysisSkillLevel(int32_t v);

@@ -18,7 +18,7 @@
 //
 //   A) NativeSyncSession.SetHashSize(int mb)   RVA 0x5D320E0 — hook the mb
 //      argument. The analysis presenter calls SetHashSize(16) during
-//      EnsureEngineReadyAsync; we bump it to kiou_analysisHashMB().
+//      EnsureEngineReadyAsync; we bump it to KFAnalysisHashMB().
 //      KiouEditor notes: "nothing in retail calls SetHashSize for BSE", so
 //      retail-only callers of SetHashSize are analysis-presenter sessions.
 //
@@ -29,7 +29,7 @@
 //   C) NativeSyncSession.SearchFull(string sfen, int depth)  RVA 0x5D32178 —
 //      hook the depth argument. The analysis presenter calls
 //      SearchFull(sfen, 15) inside RunAnalysisAsync; we override the depth
-//      to kiou_analysisDepth().
+//      to KFAnalysisDepth().
 //
 //      ABI note: SearchFull returns SyncSearchResult (a struct, see
 //      dump.cs:1602517), which on arm64 uses the indirect-return convention
@@ -66,8 +66,8 @@ static NSSSetSkillLevel_t orig_NSS_SetSkillLevel = NULL;
 static NSSSearchFull_t    orig_NSS_SearchFull    = NULL;
 
 static void hook_NSS_SetHashSize(void *self, int32_t mb, void *mi) {
-    int32_t target = kiou_featureEnabled(KIOU_FEATURE_ANALYSIS_TUNE)
-                   ? kiou_analysisHashMB() : mb;
+    int32_t target = KFFeatureEnabled(KIOU_FEATURE_ANALYSIS_TUNE)
+                   ? KFAnalysisHashMB() : mb;
     if (target != mb) {
         file_log([NSString stringWithFormat:
                   @"[ANALYSIS] SetHashSize %d -> %d MB (override)", mb, target]);
@@ -76,8 +76,8 @@ static void hook_NSS_SetHashSize(void *self, int32_t mb, void *mi) {
 }
 
 static void hook_NSS_SetSkillLevel(void *self, int32_t level, void *mi) {
-    int32_t target = kiou_featureEnabled(KIOU_FEATURE_ANALYSIS_TUNE)
-                   ? kiou_analysisSkillLevel() : level;
+    int32_t target = KFFeatureEnabled(KIOU_FEATURE_ANALYSIS_TUNE)
+                   ? KFAnalysisSkillLevel() : level;
     if (target != level) {
         file_log([NSString stringWithFormat:
                   @"[ANALYSIS] SetSkillLevel %d -> %d (override)", level, target]);
@@ -87,8 +87,8 @@ static void hook_NSS_SetSkillLevel(void *self, int32_t level, void *mi) {
 
 static KFSyncSearchResult hook_NSS_SearchFull(void *self, void *sfen,
                                               int32_t depth, void *mi) {
-    int32_t target = kiou_featureEnabled(KIOU_FEATURE_ANALYSIS_TUNE)
-                   ? kiou_analysisDepth() : depth;
+    int32_t target = KFFeatureEnabled(KIOU_FEATURE_ANALYSIS_TUNE)
+                   ? KFAnalysisDepth() : depth;
     if (target != depth) {
         file_log([NSString stringWithFormat:
                   @"[ANALYSIS] SearchFull depth %d -> %d (override)",
@@ -102,7 +102,7 @@ static KFSyncSearchResult hook_NSS_SearchFull(void *self, void *sfen,
 }
 
 #ifndef IPA_BINPATCH
-void install_AnalysisTune_hook(uintptr_t unityBase) {
+void KFInstallAnalysisTuneHook(uintptr_t unityBase) {
     {
         uintptr_t addr = unityBase + RVA_NSS_SETHASHSIZE;
         MSHookFunction((void *)addr,
@@ -110,7 +110,7 @@ void install_AnalysisTune_hook(uintptr_t unityBase) {
                        (void **)&orig_NSS_SetHashSize);
         file_log([NSString stringWithFormat:
                   @"NativeSyncSession.SetHashSize hooked @0x%lx hash=%d MB",
-                  (unsigned long)addr, (int)kiou_analysisHashMB()]);
+                  (unsigned long)addr, (int)KFAnalysisHashMB()]);
     }
     {
         uintptr_t addr = unityBase + RVA_NSS_SETSKILLEVEL;
@@ -119,7 +119,7 @@ void install_AnalysisTune_hook(uintptr_t unityBase) {
                        (void **)&orig_NSS_SetSkillLevel);
         file_log([NSString stringWithFormat:
                   @"NativeSyncSession.SetSkillLevel hooked @0x%lx skill=%d",
-                  (unsigned long)addr, (int)kiou_analysisSkillLevel()]);
+                  (unsigned long)addr, (int)KFAnalysisSkillLevel()]);
     }
     {
         uintptr_t addr = unityBase + RVA_NSS_SEARCHFULL;
@@ -128,22 +128,22 @@ void install_AnalysisTune_hook(uintptr_t unityBase) {
                        (void **)&orig_NSS_SearchFull);
         file_log([NSString stringWithFormat:
                   @"NativeSyncSession.SearchFull hooked @0x%lx depth=%d",
-                  (unsigned long)addr, (int)kiou_analysisDepth()]);
+                  (unsigned long)addr, (int)KFAnalysisDepth()]);
     }
 }
 #else
-void publish_AnalysisTune_slots(uintptr_t unityBase) {
-    g_kiou_hook_slot[KIOU_SLOT_NSS_SETHASHSIZE] = (void *)hook_NSS_SetHashSize;
+void KFPublishAnalysisTuneSlots(uintptr_t unityBase) {
+    g_kfHookSlot[KIOU_SLOT_NSS_SETHASHSIZE] = (void *)hook_NSS_SetHashSize;
     orig_NSS_SetHashSize = (NSSSetHashSize_t)
-        kiou_resolve_orig_trampoline(unityBase, RVA_NSS_SETHASHSIZE);
+        KFResolveOrigTrampoline(unityBase, RVA_NSS_SETHASHSIZE);
 
-    g_kiou_hook_slot[KIOU_SLOT_NSS_SETSKILLEVEL] = (void *)hook_NSS_SetSkillLevel;
+    g_kfHookSlot[KIOU_SLOT_NSS_SETSKILLEVEL] = (void *)hook_NSS_SetSkillLevel;
     orig_NSS_SetSkillLevel = (NSSSetSkillLevel_t)
-        kiou_resolve_orig_trampoline(unityBase, RVA_NSS_SETSKILLEVEL);
+        KFResolveOrigTrampoline(unityBase, RVA_NSS_SETSKILLEVEL);
 
-    g_kiou_hook_slot[KIOU_SLOT_NSS_SEARCHFULL] = (void *)hook_NSS_SearchFull;
+    g_kfHookSlot[KIOU_SLOT_NSS_SEARCHFULL] = (void *)hook_NSS_SearchFull;
     orig_NSS_SearchFull = (NSSSearchFull_t)
-        kiou_resolve_orig_trampoline(unityBase, RVA_NSS_SEARCHFULL);
+        KFResolveOrigTrampoline(unityBase, RVA_NSS_SEARCHFULL);
 
     file_log([NSString stringWithFormat:
               @"[BINPATCH] AnalysisTune: SetHashSize slot[%d]=%p orig=%p, "
@@ -151,16 +151,16 @@ void publish_AnalysisTune_slots(uintptr_t unityBase) {
               @"SearchFull slot[%d]=%p orig=%p "
               @"(depth=%d hash=%d MB skill=%d)",
               KIOU_SLOT_NSS_SETHASHSIZE,
-              g_kiou_hook_slot[KIOU_SLOT_NSS_SETHASHSIZE],
+              g_kfHookSlot[KIOU_SLOT_NSS_SETHASHSIZE],
               (void *)orig_NSS_SetHashSize,
               KIOU_SLOT_NSS_SETSKILLEVEL,
-              g_kiou_hook_slot[KIOU_SLOT_NSS_SETSKILLEVEL],
+              g_kfHookSlot[KIOU_SLOT_NSS_SETSKILLEVEL],
               (void *)orig_NSS_SetSkillLevel,
               KIOU_SLOT_NSS_SEARCHFULL,
-              g_kiou_hook_slot[KIOU_SLOT_NSS_SEARCHFULL],
+              g_kfHookSlot[KIOU_SLOT_NSS_SEARCHFULL],
               (void *)orig_NSS_SearchFull,
-              (int)kiou_analysisDepth(),
-              (int)kiou_analysisHashMB(),
-              (int)kiou_analysisSkillLevel()]);
+              (int)KFAnalysisDepth(),
+              (int)KFAnalysisHashMB(),
+              (int)KFAnalysisSkillLevel()]);
 }
 #endif

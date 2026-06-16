@@ -20,14 +20,14 @@
 // filename (no spaces, no slashes, ASCII only).
 // ===========================================================================
 
-NSString *kiou_kifWriterEmit(void *gameCtrl,
+NSString *KFKifWriterEmit(void *gameCtrl,
                                         void *matchConfig,
                                         void *stateStore,
                                         const char *matchModeTag) {
     // 1. Get the KIF text. matchConfig / stateStore may be NULL — in
     //    that case player names and time-rule label come out blank,
     //    which is acceptable.
-    NSString *kif = kiou_kifTextFromGameController(gameCtrl,
+    NSString *kif = KFKifTextFromGameController(gameCtrl,
                                               matchConfig,
                                               stateStore,
                                               matchModeTag);
@@ -40,17 +40,17 @@ NSString *kiou_kifWriterEmit(void *gameCtrl,
     }
 
     // 2. Make sure the output directory exists.
-    NSString *outDir = kiou_kifEnsureOutputDir();
+    NSString *outDir = KFKifEnsureOutputDir();
     if (!outDir) {
         file_log(@"[KIF] emit failed: output dir unavailable");
         return nil;
     }
 
     // 3. Build the filename.
-    NSString *ts = kiou_kifTimestamp();
-    NSString *modeSeg = kiou_kifSanitizeSegment(
+    NSString *ts = KFKifTimestamp();
+    NSString *modeSeg = KFKifSanitizeSegment(
         matchModeTag ? @(matchModeTag) : @"unknown", 32);
-    NSString *startposSeg = kiou_kifDescribeStartpos(gameCtrl);
+    NSString *startposSeg = KFKifDescribeStartpos(gameCtrl);
 
     NSString *filename = [NSString stringWithFormat:@"%@_%@_%@.kif",
                           ts, modeSeg, startposSeg];
@@ -78,7 +78,7 @@ NSString *kiou_kifWriterEmit(void *gameCtrl,
 }
 
 // ===========================================================================
-// kiou_kifuObserveMatchEnd — entry point for all 5 IMatchMode.OnMatchEnd
+// KFKifuObserveMatchEnd — entry point for all 5 IMatchMode.OnMatchEnd
 // sites. The observer cave (recipes/kiouforge.py) saves caller registers,
 // injects the mode index in X2 via MOVZ, BLRs through the slot, restores
 // registers, executes the displaced prologue, then jumps to orig+4. So
@@ -87,7 +87,7 @@ NSString *kiou_kifWriterEmit(void *gameCtrl,
 //
 // We honour two feature flags:
 //   * master KIOU_FEATURE_KIFU_AUTOSAVE
-//   * per-mode kiou_kifuModeEnabled(mode_index)
+//   * per-mode KFKifuModeEnabled(mode_index)
 // Either being off skips emission silently.
 // ===========================================================================
 
@@ -113,17 +113,17 @@ static void *kf_resolveGameController(void *self, uint32_t mode_index) {
     return readPtr(adapter, KIOU_ADAPTER_OFF_GAMECTRL);
 }
 
-KFUniTaskRet kiou_kifuObserveMatchEnd(void *self, void *ct,
+KFUniTaskRet KFKifuObserveMatchEnd(void *self, void *ct,
                                       uint32_t mode_index) {
     (void)ct;
     KFUniTaskRet zero = { NULL, NULL };
 
     // Master toggle.
-    if (!kiou_featureEnabled(KIOU_FEATURE_KIFU_AUTOSAVE)) return zero;
+    if (!KFFeatureEnabled(KIOU_FEATURE_KIFU_AUTOSAVE)) return zero;
 
     // Per-mode toggle.
     if (mode_index < KIOU_MMODE_COUNT &&
-        !kiou_kifuModeEnabled((KiouMatchMode)mode_index)) {
+        !KFKifuModeEnabled((KiouMatchMode)mode_index)) {
         return zero;
     }
 
@@ -151,7 +151,7 @@ KFUniTaskRet kiou_kifuObserveMatchEnd(void *self, void *ct,
               @"[KIFU] %s self=%p gameCtrl=%p matchConfig=%p stateStore=%p — emitting",
               modeName, self, gameCtrl, matchConfig, stateStore]);
 
-    NSString *path = kiou_kifWriterEmit(gameCtrl, matchConfig, stateStore, modeName);
+    NSString *path = KFKifWriterEmit(gameCtrl, matchConfig, stateStore, modeName);
     if (path) {
         file_log([NSString stringWithFormat:@"[KIFU] %s -> %@", modeName, path]);
     }
