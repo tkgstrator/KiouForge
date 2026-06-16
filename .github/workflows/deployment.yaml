@@ -136,8 +136,8 @@ jobs:
         # libdobby — those references would brick TrollStore / patched
         # IPA installs at load time.
         run: |
-          for DYLIB in packages/jailed/KiouEditor.dylib \
-                       packages/binpatch/KiouEditor.dylib; do
+          for DYLIB in packages/jailed/KiouForge.dylib \
+                       packages/binpatch/KiouForge.dylib; do
               test -f "$DYLIB"
               if command -v otool >/dev/null 2>&1; then
                   otool -L "$DYLIB"
@@ -175,9 +175,9 @@ jobs:
           # rename, FINALPACKAGE / DEBUG toggle): we just strip the
           # trailing ".deb" and append the flavor tag.
           DEB=$(basename packages/*.deb .deb)
-          cp packages/jailed/KiouEditor.dylib \
+          cp packages/jailed/KiouForge.dylib \
              "dist/${DEB}-jailed.dylib"
-          cp packages/binpatch/KiouEditor.dylib \
+          cp packages/binpatch/KiouForge.dylib \
              "dist/${DEB}-binpatch.dylib"
           ls -la dist/
 
