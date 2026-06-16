@@ -31,6 +31,12 @@ settings the retail client doesn't expose — frame-rate presets, AFK warning
 suppression, post-game kifu analysis tuning, and kifu autosave. Every change
 runs on-device and never touches the server or affects live match play.
 
+<p align="center">
+  <img src="docs/screenshots/kiou-title.webp" alt="KIOU title screen" width="240" />
+  <img src="docs/screenshots/settings-main.webp" alt="KiouForge settings sheet" width="240" />
+  <img src="docs/screenshots/settings-kifu-autosave.webp" alt="Kifu Autosave per-mode sub-screen" width="240" />
+</p>
+
 ## Features
 
 | Toggle | What it does |
