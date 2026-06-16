@@ -1,6 +1,10 @@
 <h1 align="center">KiouForge</h1>
 
 <p align="center">
+  <img src="icon.webp" alt="KiouForge icon" width="180" />
+</p>
+
+<p align="center">
   <em>Local quality-of-life tuning for <strong>KIOU</strong>.<br/>
   Adjust frame-rate, suppress false AFK warnings, and strengthen the<br/>
   on-device post-game kifu analysis engine — all client-side, zero server impact.</em>
