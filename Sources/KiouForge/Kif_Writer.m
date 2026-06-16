@@ -1,0 +1,159 @@
+#import "Internal.h"
+
+// ===========================================================================
+// Kif_Writer.m — the entire reason this tweak exists.
+//
+// Called from Hook_MatchModeObserve.m::END_HOOK once OnMatchEndAsync fires.
+// Reads the KIF text off the live GameController and writes it as a UTF-8
+// .kif file under Documents/KiouForge/.
+//
+// Filename format:
+//
+//   {ISO8601_UTC}_{mode}_{startpos}.kif
+//
+//   ISO8601_UTC : "20260614T234500"
+//   mode        : "AIMatchMode" | "CPUStreamMode" | "OnlinePvPMode"
+//                 | "LocalPvPMode" | "RecordReplayMode" | "unknown"
+//   startpos    : "startpos" | "sfen-<8 hex>" | "unknown"
+//
+// All segments are sanitized so the result is always a safe POSIX
+// filename (no spaces, no slashes, ASCII only).
+// ===========================================================================
+
+NSString *kiou_kifWriterEmit(void *gameCtrl,
+                                        void *matchConfig,
+                                        void *stateStore,
+                                        const char *matchModeTag) {
+    // 1. Get the KIF text. matchConfig / stateStore may be NULL — in
+    //    that case player names and time-rule label come out blank,
+    //    which is acceptable.
+    NSString *kif = kiou_kifTextFromGameController(gameCtrl,
+                                              matchConfig,
+                                              stateStore,
+                                              matchModeTag);
+    if (kif.length == 0) {
+        file_log([NSString stringWithFormat:
+                  @"[KIF] emit skipped: GetKifuText returned empty "
+                  @"(gameCtrl=%p mode=%s)",
+                  gameCtrl, matchModeTag ? matchModeTag : "unknown"]);
+        return nil;
+    }
+
+    // 2. Make sure the output directory exists.
+    NSString *outDir = kiou_kifEnsureOutputDir();
+    if (!outDir) {
+        file_log(@"[KIF] emit failed: output dir unavailable");
+        return nil;
+    }
+
+    // 3. Build the filename.
+    NSString *ts = kiou_kifTimestamp();
+    NSString *modeSeg = kiou_kifSanitizeSegment(
+        matchModeTag ? @(matchModeTag) : @"unknown", 32);
+    NSString *startposSeg = kiou_kifDescribeStartpos(gameCtrl);
+
+    NSString *filename = [NSString stringWithFormat:@"%@_%@_%@.kif",
+                          ts, modeSeg, startposSeg];
+    NSString *path = [outDir stringByAppendingPathComponent:filename];
+
+    // 4. Write atomically. KIF is a text format — UTF-8 with BOM-less
+    //    output is what every Japanese kifu viewer (PiyoShogi, Shogi
+    //    Browser Q, KifuCloud, …) accepts.
+    NSError *err = nil;
+    BOOL ok = [kif writeToFile:path
+                    atomically:YES
+                      encoding:NSUTF8StringEncoding
+                         error:&err];
+    if (!ok) {
+        file_log([NSString stringWithFormat:
+                  @"[KIF] write failed: path=%@ err=%@", path, err]);
+        return nil;
+    }
+
+    file_log([NSString stringWithFormat:
+              @"[KIF] wrote %lu bytes -> %@",
+              (unsigned long)[kif lengthOfBytesUsingEncoding:NSUTF8StringEncoding],
+              path]);
+    return path;
+}
+
+// ===========================================================================
+// kiou_kifuObserveMatchEnd — entry point for all 5 IMatchMode.OnMatchEnd
+// sites. The observer cave (recipes/kiouforge.py) saves caller registers,
+// injects the mode index in X2 via MOVZ, BLRs through the slot, restores
+// registers, executes the displaced prologue, then jumps to orig+4. So
+// our return value is effectively dead — we still zero a KFUniTaskRet for
+// shape correctness.
+//
+// We honour two feature flags:
+//   * master KIOU_FEATURE_KIFU_AUTOSAVE
+//   * per-mode kiou_kifuModeEnabled(mode_index)
+// Either being off skips emission silently.
+// ===========================================================================
+
+#define ONLINEPVPMODE_OFF_STATE_STORE   0x28
+#define ONLINEPVPMODE_OFF_MATCHCONFIG   0x38
+
+static void *kf_resolveGameController(void *self, uint32_t mode_index) {
+    if (mode_index >= KIOU_MMODE_COUNT) {
+        file_log([NSString stringWithFormat:
+                  @"[KIFU] mode_index=%u out of range", mode_index]);
+        return NULL;
+    }
+    if (!ptrLooksValid(self)) return NULL;
+    uintptr_t adapterOff = kKiouMatchModeAdapterOffsets[mode_index];
+    void *adapter = readPtr(self, adapterOff);
+    if (!adapter) {
+        file_log([NSString stringWithFormat:
+                  @"[KIFU] resolve: self=%p mode=%s adapterOff=0x%lx -> adapter=NULL",
+                  self, kKiouMatchModeTags[mode_index],
+                  (unsigned long)adapterOff]);
+        return NULL;
+    }
+    return readPtr(adapter, KIOU_ADAPTER_OFF_GAMECTRL);
+}
+
+KFUniTaskRet kiou_kifuObserveMatchEnd(void *self, void *ct,
+                                      uint32_t mode_index) {
+    (void)ct;
+    KFUniTaskRet zero = { NULL, NULL };
+
+    // Master toggle.
+    if (!kiou_featureEnabled(KIOU_FEATURE_KIFU_AUTOSAVE)) return zero;
+
+    // Per-mode toggle.
+    if (mode_index < KIOU_MMODE_COUNT &&
+        !kiou_kifuModeEnabled((KiouMatchMode)mode_index)) {
+        return zero;
+    }
+
+    const char *modeName = (mode_index < KIOU_MMODE_COUNT)
+                         ? kKiouMatchModeTags[mode_index] : "Unknown";
+
+    void *gameCtrl = kf_resolveGameController(self, mode_index);
+    if (!gameCtrl) {
+        file_log([NSString stringWithFormat:
+                  @"[KIFU] %s self=%p: GameController unresolved, skipping",
+                  modeName, self]);
+        return zero;
+    }
+
+    // MatchConfig / GameStateStore only available on OnlinePvPMode's `self`;
+    // other modes' KIF gets blank player names (acceptable for offline play).
+    void *matchConfig = NULL;
+    void *stateStore  = NULL;
+    if (mode_index == KIOU_MMODE_ONLINE_PVP && ptrLooksValid(self)) {
+        matchConfig = readPtr(self, ONLINEPVPMODE_OFF_MATCHCONFIG);
+        stateStore  = readPtr(self, ONLINEPVPMODE_OFF_STATE_STORE);
+    }
+
+    file_log([NSString stringWithFormat:
+              @"[KIFU] %s self=%p gameCtrl=%p matchConfig=%p stateStore=%p — emitting",
+              modeName, self, gameCtrl, matchConfig, stateStore]);
+
+    NSString *path = kiou_kifWriterEmit(gameCtrl, matchConfig, stateStore, modeName);
+    if (path) {
+        file_log([NSString stringWithFormat:@"[KIFU] %s -> %@", modeName, path]);
+    }
+    return zero;
+}

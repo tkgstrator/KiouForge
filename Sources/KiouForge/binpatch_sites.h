@@ -32,14 +32,19 @@ enum {
     KIOU_SLOT_NSS_SETSKILLEVEL          = 3,   // NativeSyncSession.SetSkillLevel
     KIOU_SLOT_TITLE_SCENE_MOVENEXT      = 4,   // TitleScene version stamp
     KIOU_SLOT_NSS_SEARCHFULL            = 5,   // NativeSyncSession.SearchFull (depth)
-    KIOU_SLOT_COUNT                     = 6,
+    KIOU_SLOT_KIFU_OBSERVE              = 6,   // IMatchMode.OnMatchEndAsync x5 (observer)
+    KIOU_SLOT_COUNT                     = 7,
 };
 
 // ---------------------------------------------------------------------------
 // __bss slot table base.
-// 6 slots * 8 B = 48 B below KiouKifExporter's slot at 0x8F90CD0.
+// 7 slots * 8 B = 56 B at the tail of UnityFramework __DATA,__bss.
+// KiouForge replaces KiouKifExporter's autosave so the two should not be
+// installed together. The base is positioned so the table ends at 0x8F90CD8
+// (one slot above where KKE used to live, to leave room for the observer
+// slot that subsumes KKE's role).
 // ---------------------------------------------------------------------------
-#define KIOU_HOOK_SLOT_BASE_RVA  0x8F90CA0   // 0x8F90CD0 - 6*8
+#define KIOU_HOOK_SLOT_BASE_RVA  0x8F90CA0   // 0x8F90CD8 - 7*8
 extern void **g_kiou_hook_slot;
 
 // ---------------------------------------------------------------------------

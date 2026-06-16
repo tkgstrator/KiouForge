@@ -16,13 +16,18 @@
 // the FPS stepper callback.
 extern void KFApplyFPS(int32_t fps);
 
-@interface KFSettingsViewController : UIViewController
-    <UITableViewDataSource, UITableViewDelegate>
-@property (nonatomic, strong) UITableView *tableView;
+// Root settings view controller. Hosted inside a UINavigationController so
+// rows that drill into sub-screens (e.g. Kifu Autosave → per-mode toggles)
+// get push transitions for free.
+@interface KFSettingsViewController : UITableViewController
 @property (nonatomic, strong) UILabel *fpsValueLabel;
 @property (nonatomic, strong) UILabel *depthValueLabel;
 @property (nonatomic, strong) UILabel *hashValueLabel;
 @property (nonatomic, strong) UILabel *skillValueLabel;
+@end
+
+// Sub-screen: per-match-mode toggles for kifu autosave.
+@interface KFKifuModesViewController : UITableViewController
 @end
 
 // Mirror of the preset tables in Persistence.m for local label rendering.
@@ -52,42 +57,31 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
 
 @implementation KFSettingsViewController
 
+- (instancetype)init {
+    if ((self = [super initWithStyle:UITableViewStyleInsetGrouped])) {
+        self.title = @"KiouForge";
+    }
+    return self;
+}
+
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.view.backgroundColor = UIColor.systemGroupedBackgroundColor;
-
-    UINavigationBar *navBar = [[UINavigationBar alloc] init];
-    navBar.translatesAutoresizingMaskIntoConstraints = NO;
-    UINavigationItem *navItem = [[UINavigationItem alloc] initWithTitle:@"KiouForge"];
-    navItem.rightBarButtonItem = [[UIBarButtonItem alloc]
+    self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc]
         initWithBarButtonSystemItem:UIBarButtonSystemItemDone
                              target:self
                              action:@selector(onClose:)];
-    navBar.items = @[ navItem ];
-    [self.view addSubview:navBar];
+}
 
-    self.tableView = [[UITableView alloc] initWithFrame:CGRectZero
-                                                  style:UITableViewStyleInsetGrouped];
-    self.tableView.dataSource = self;
-    self.tableView.delegate   = self;
-    self.tableView.translatesAutoresizingMaskIntoConstraints = NO;
-    [self.view addSubview:self.tableView];
-
-    UILayoutGuide *safe = self.view.safeAreaLayoutGuide;
-    [NSLayoutConstraint activateConstraints:@[
-        [navBar.topAnchor      constraintEqualToAnchor:safe.topAnchor],
-        [navBar.leadingAnchor  constraintEqualToAnchor:self.view.leadingAnchor],
-        [navBar.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
-
-        [self.tableView.topAnchor      constraintEqualToAnchor:navBar.bottomAnchor],
-        [self.tableView.leadingAnchor  constraintEqualToAnchor:self.view.leadingAnchor],
-        [self.tableView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
-        [self.tableView.bottomAnchor   constraintEqualToAnchor:self.view.bottomAnchor],
-    ]];
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+    // Reload after returning from a sub-screen so the feature row's
+    // disclosure caption (e.g. "3 of 5") and switches reflect any
+    // changes made there.
+    [self.tableView reloadData];
 }
 
 - (void)onClose:(id)sender {
-    [self dismissViewControllerAnimated:YES completion:nil];
+    [self.navigationController dismissViewControllerAnimated:YES completion:nil];
 }
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
@@ -142,6 +136,44 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
 - (UITableViewCell *)tableView:(UITableView *)tableView
          cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     if (indexPath.section == KF_SECTION_FEATURES) {
+        KiouFeature f = (KiouFeature)indexPath.row;
+        // Two row shapes:
+        //   * Plain toggle row     — UISwitch accessory, no disclosure.
+        //   * Navigation row       — Value1 cell with detail caption (e.g.
+        //                            "3 of 5") + disclosure indicator.
+        // We dequeue under distinct identifiers so the cached style stays
+        // correct across reuse.
+        if (kiou_featureHasNavigation(f)) {
+            static NSString *kId = @"feature-nav";
+            UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:kId];
+            if (!cell) {
+                cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleValue1
+                                              reuseIdentifier:kId];
+            }
+            cell.textLabel.text = kiou_featureLabel(f);
+            cell.accessoryView = nil;  // disclosure indicator below
+            cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
+            cell.selectionStyle = UITableViewCellSelectionStyleDefault;
+            // Caption: master state + per-mode count for Kifu Autosave.
+            if (f == KIOU_FEATURE_KIFU_AUTOSAVE) {
+                if (!kiou_featureEnabled(f)) {
+                    cell.detailTextLabel.text = @"Off";
+                } else {
+                    int32_t on = 0;
+                    for (int i = 0; i < KIOU_MMODE_COUNT; i++) {
+                        if (kiou_kifuModeEnabled((KiouMatchMode)i)) on++;
+                    }
+                    cell.detailTextLabel.text =
+                        [NSString stringWithFormat:@"%d of %d", on, KIOU_MMODE_COUNT];
+                }
+            } else {
+                cell.detailTextLabel.text =
+                    kiou_featureEnabled(f) ? @"On" : @"Off";
+            }
+            cell.detailTextLabel.textColor = UIColor.secondaryLabelColor;
+            return cell;
+        }
+
         static NSString *kId = @"feature";
         UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:kId];
         if (!cell) {
@@ -149,7 +181,6 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
                                           reuseIdentifier:kId];
             cell.selectionStyle = UITableViewCellSelectionStyleNone;
         }
-        KiouFeature f = (KiouFeature)indexPath.row;
         cell.textLabel.text = kiou_featureLabel(f);
         UISwitch *sw = [[UISwitch alloc] init];
         sw.on = kiou_featureEnabled(f);
@@ -157,6 +188,7 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
         [sw addTarget:self action:@selector(onFeatureToggle:)
      forControlEvents:UIControlEventValueChanged];
         cell.accessoryView = sw;
+        cell.accessoryType = UITableViewCellAccessoryNone;
         return cell;
     }
 
@@ -260,6 +292,17 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
+
+    if (indexPath.section == KF_SECTION_FEATURES) {
+        KiouFeature f = (KiouFeature)indexPath.row;
+        if (!kiou_featureHasNavigation(f)) return;
+        if (f == KIOU_FEATURE_KIFU_AUTOSAVE) {
+            KFKifuModesViewController *vc = [[KFKifuModesViewController alloc] init];
+            [self.navigationController pushViewController:vc animated:YES];
+        }
+        return;
+    }
+
     if (indexPath.section != KF_SECTION_ABOUT) return;
     NSString *str = (indexPath.row == KF_ABOUT_ROW_REPO) ? kAboutRepoURL : kAboutTwitterURL;
     NSURL *url = [NSURL URLWithString:str];
@@ -310,6 +353,77 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
 
 @end
 
+// ===========================================================================
+// KFKifuModesViewController — per-mode kifu autosave toggles.
+//
+// Pushed by the root controller when the Kifu Autosave row is tapped. One
+// section, KIOU_MMODE_COUNT rows (AI / CPUStream / LocalPvP / OnlinePvP /
+// RecordReplay), each a UISwitch on `kiou_kifuModeEnabled(mode)`.
+//
+// Independent of the master KIOU_FEATURE_KIFU_AUTOSAVE flag — the master
+// stays where it is on the root screen; this screen edits only the per-mode
+// flags. The on-device hook (Hook_KifuObserve.m's
+// kiou_kifuObserveMatchEnd) gates emission on BOTH the master and the
+// per-mode flag.
+// ===========================================================================
+
+@implementation KFKifuModesViewController
+
+- (instancetype)init {
+    if ((self = [super initWithStyle:UITableViewStyleInsetGrouped])) {
+        self.title = @"Kifu Autosave";
+    }
+    return self;
+}
+
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
+    return 1;
+}
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+    return KIOU_MMODE_COUNT;
+}
+
+- (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section {
+    return @"Modes";
+}
+
+- (NSString *)tableView:(UITableView *)tableView titleForFooterInSection:(NSInteger)section {
+    return @"Pick which match modes get auto-saved as a .kif file under "
+           @"Documents/KiouForge/ when the match ends. The master Kifu "
+           @"Autosave toggle on the previous screen must also be on.";
+}
+
+- (UITableViewCell *)tableView:(UITableView *)tableView
+         cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    static NSString *kId = @"kifu-mode";
+    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:kId];
+    if (!cell) {
+        cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault
+                                      reuseIdentifier:kId];
+        cell.selectionStyle = UITableViewCellSelectionStyleNone;
+    }
+    KiouMatchMode m = (KiouMatchMode)indexPath.row;
+    cell.textLabel.text = kiou_kifuModeLabel(m);
+    UISwitch *sw = [[UISwitch alloc] init];
+    sw.on = kiou_kifuModeEnabled(m);
+    sw.tag = m;
+    [sw addTarget:self action:@selector(onModeToggle:)
+ forControlEvents:UIControlEventValueChanged];
+    cell.accessoryView = sw;
+    return cell;
+}
+
+- (void)onModeToggle:(UISwitch *)sw {
+    KiouMatchMode m = (KiouMatchMode)sw.tag;
+    kiou_setKifuModeEnabled(m, sw.isOn);
+    file_log([NSString stringWithFormat:
+              @"[SETTINGS] kifu mode %@ -> %@",
+              kiou_kifuModeLabel(m), sw.isOn ? @"ON" : @"OFF"]);
+}
+
+@end
+
 // ---------------------------------------------------------------------------
 // Presenter bridge — called from Settings.m (right-edge swipe).
 // ---------------------------------------------------------------------------
@@ -338,9 +452,14 @@ void KFPresentSettings(void) {
         UIViewController *top = root;
         while (top.presentedViewController) top = top.presentedViewController;
 
-        KFSettingsViewController *vc = [[KFSettingsViewController alloc] init];
-        vc.modalPresentationStyle = UIModalPresentationFormSheet;
-        [top presentViewController:vc animated:YES completion:^{
+        // Wrap in a UINavigationController so feature rows that need a
+        // sub-screen (e.g. Kifu Autosave's per-mode toggles) get push
+        // transitions for free.
+        KFSettingsViewController *root_vc = [[KFSettingsViewController alloc] init];
+        UINavigationController *nav =
+            [[UINavigationController alloc] initWithRootViewController:root_vc];
+        nav.modalPresentationStyle = UIModalPresentationFormSheet;
+        [top presentViewController:nav animated:YES completion:^{
             file_log(@"[SETTINGS] modal presented");
         }];
     });

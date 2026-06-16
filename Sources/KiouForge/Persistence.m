@@ -12,6 +12,7 @@ static NSString *featureKey(KiouFeature f) {
         case KIOU_FEATURE_FPS_OVERRIDE:  return @"kiou_forge.feature.fps_override";
         case KIOU_FEATURE_DISABLE_AFK:   return @"kiou_forge.feature.disable_afk";
         case KIOU_FEATURE_ANALYSIS_TUNE: return @"kiou_forge.feature.analysis_tune";
+        case KIOU_FEATURE_KIFU_AUTOSAVE: return @"kiou_forge.feature.kifu_autosave";
         default: return nil;
     }
 }
@@ -21,8 +22,15 @@ NSString *kiou_featureLabel(KiouFeature f) {
         case KIOU_FEATURE_FPS_OVERRIDE:  return @"FPS Override";
         case KIOU_FEATURE_DISABLE_AFK:   return @"AFK Guard";
         case KIOU_FEATURE_ANALYSIS_TUNE: return @"Analysis Tune";
+        case KIOU_FEATURE_KIFU_AUTOSAVE: return @"Kifu Autosave";
         default: return @"";
     }
+}
+
+bool kiou_featureHasNavigation(KiouFeature f) {
+    // Kifu Autosave drills into a per-mode sub-screen. Everything else is
+    // a plain toggle.
+    return f == KIOU_FEATURE_KIFU_AUTOSAVE;
 }
 
 bool kiou_featureEnabled(KiouFeature f) {
@@ -133,5 +141,51 @@ int32_t kiou_analysisSkillLevel(void) {
 void kiou_setAnalysisSkillLevel(int32_t v) {
     NSUserDefaults *defs = [NSUserDefaults standardUserDefaults];
     [defs setInteger:clampInt(v, 1, 20) forKey:kAnalysisSkillLevelKey];
+    [defs synchronize];
+}
+
+// ---------------------------------------------------------------------------
+// Per-match-mode kifu autosave flags.
+//
+// Default ON for every mode so a fresh install captures every match. The
+// master KIOU_FEATURE_KIFU_AUTOSAVE toggle gates emission as a whole.
+// ---------------------------------------------------------------------------
+
+static NSString *kifuModeKey(KiouMatchMode m) {
+    switch (m) {
+        case KIOU_MMODE_AI_MATCH:      return @"kiou_forge.kifu.ai_match";
+        case KIOU_MMODE_CPU_STREAM:    return @"kiou_forge.kifu.cpu_stream";
+        case KIOU_MMODE_LOCAL_PVP:     return @"kiou_forge.kifu.local_pvp";
+        case KIOU_MMODE_ONLINE_PVP:    return @"kiou_forge.kifu.online_pvp";
+        case KIOU_MMODE_RECORD_REPLAY: return @"kiou_forge.kifu.record_replay";
+        default: return nil;
+    }
+}
+
+NSString *kiou_kifuModeLabel(KiouMatchMode m) {
+    switch (m) {
+        case KIOU_MMODE_AI_MATCH:      return @"AI Match";
+        case KIOU_MMODE_CPU_STREAM:    return @"CPU Stream";
+        case KIOU_MMODE_LOCAL_PVP:     return @"Local PvP";
+        case KIOU_MMODE_ONLINE_PVP:    return @"Online PvP";
+        case KIOU_MMODE_RECORD_REPLAY: return @"Record Replay";
+        default: return @"";
+    }
+}
+
+bool kiou_kifuModeEnabled(KiouMatchMode m) {
+    NSString *key = kifuModeKey(m);
+    if (!key) return false;
+    NSUserDefaults *defs = [NSUserDefaults standardUserDefaults];
+    id obj = [defs objectForKey:key];
+    if (obj == nil) return true;  // default on
+    return [defs boolForKey:key];
+}
+
+void kiou_setKifuModeEnabled(KiouMatchMode m, bool enabled) {
+    NSString *key = kifuModeKey(m);
+    if (!key) return;
+    NSUserDefaults *defs = [NSUserDefaults standardUserDefaults];
+    [defs setBool:enabled forKey:key];
     [defs synchronize];
 }

@@ -54,6 +54,7 @@ static void installUnityHooks(void) {
     install_AfkDisable_hook(unityBase);
     install_AnalysisTune_hook(unityBase);
     install_Version_hook(unityBase);
+    install_KifuObserve_hook(unityBase);
 
     g_unityHooked = YES;
     file_log(@"=== All KiouForge hooks installed ===");

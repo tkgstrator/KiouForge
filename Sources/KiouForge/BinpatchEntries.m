@@ -35,6 +35,7 @@ static void publish_all(uintptr_t unityBase) {
     publish_AfkDisable_slots(unityBase);
     publish_AnalysisTune_slots(unityBase);
     publish_Version_slots(unityBase);
+    publish_KifuObserve_slots(unityBase);
 }
 
 void kiou_binpatch_bootstrap(void) {
