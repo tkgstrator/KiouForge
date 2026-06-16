@@ -82,8 +82,23 @@ int32_t kiou_targetFps(void) {
 // Post-game analysis engine tuning.
 // ---------------------------------------------------------------------------
 
+static NSString *const kAnalysisDepthKey      = @"kiou_forge.analysis_depth";
 static NSString *const kAnalysisHashIndexKey  = @"kiou_forge.analysis_hash_idx";
 static NSString *const kAnalysisSkillLevelKey = @"kiou_forge.analysis_skill_level";
+
+int32_t kiou_analysisDepth(void) {
+    // Match the retail KifuDetailPopupAnalysisPresenter.SearchDepth default (15).
+    // Users raise it for stronger analysis at the cost of longer run time.
+    NSUserDefaults *defs = [NSUserDefaults standardUserDefaults];
+    if ([defs objectForKey:kAnalysisDepthKey] == nil) return 15;
+    return clampInt((int32_t)[defs integerForKey:kAnalysisDepthKey], 1, 36);
+}
+
+void kiou_setAnalysisDepth(int32_t v) {
+    NSUserDefaults *defs = [NSUserDefaults standardUserDefaults];
+    [defs setInteger:clampInt(v, 1, 36) forKey:kAnalysisDepthKey];
+    [defs synchronize];
+}
 
 // Hash MB presets. Default index 0 = 16 MB (retail default) so a fresh
 // install matches the game's own behavior.

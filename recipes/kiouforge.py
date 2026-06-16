@@ -7,8 +7,8 @@ assist feature.
 
 Patch chain is identical to KiouEditor (see that tweak for the full
 explanation). Differences:
-  - 5 hook slots (down from 24).
-  - Slot base: 0x8F90CA8 = 0x8F90CD0 - 5*8 (below KiouKifExporter's slot;
+  - 6 hook slots (down from 24).
+  - Slot base: 0x8F90CA0 = 0x8F90CD0 - 6*8 (below KiouKifExporter's slot;
     KiouForge replaces autosave so both should not be installed together).
   - PLIST_KEYS adds CADisableMinimumFrameDurationOnPhone = True so >60 fps
     values reach the display on ProMotion devices.
@@ -55,8 +55,8 @@ CAVE_REGION = (0x8268024, 0x826C000)
 # Must match KIOU_HOOK_SLOT_BASE_RVA in binpatch_sites.h.
 # ---------------------------------------------------------------------------
 
-KIOU_SLOT_COUNT = 5
-HOOK_SLOT_BASE_RVA = 0x8F90CD0 - KIOU_SLOT_COUNT * 8  # 0x8F90CA8
+KIOU_SLOT_COUNT = 6
+HOOK_SLOT_BASE_RVA = 0x8F90CD0 - KIOU_SLOT_COUNT * 8  # 0x8F90CA0
 
 CAVE_PAYLOAD_SIZE = 84  # 21 instructions — identical to KiouEditor
 
@@ -114,6 +114,7 @@ KIOU_SLOT_GAME_ORCHESTRATOR_IS_AFK = 1
 KIOU_SLOT_NSS_SETHASHSIZE          = 2
 KIOU_SLOT_NSS_SETSKILLEVEL         = 3
 KIOU_SLOT_TITLE_SCENE_MOVENEXT     = 4
+KIOU_SLOT_NSS_SEARCHFULL           = 5
 
 # (slot_index, site_off, expected_prologue_hex, label)
 #
@@ -123,6 +124,7 @@ KIOU_SLOT_TITLE_SCENE_MOVENEXT     = 4
 #   f44fbea9 = STP X20,X19,[SP,#-0x20]!  (PC-independent)
 #   ff0301d1 = SUB SP,SP,#0x40           (PC-independent)
 #   ff0303d1 = SUB SP,SP,#0xC0           (PC-independent)
+#   ffc305d1 = SUB SP,SP,#0x170          (PC-independent)
 _SITES: list[tuple[int, int, str, str]] = [
     (KIOU_SLOT_SET_TARGET_FRAMERATE,     0x6B6B758, "f44fbea9",
      "Application.set_targetFrameRate"),
@@ -134,6 +136,8 @@ _SITES: list[tuple[int, int, str, str]] = [
      "NativeSyncSession.SetSkillLevel"),
     (KIOU_SLOT_TITLE_SCENE_MOVENEXT,     0x5DCC728, "ff0303d1",
      "TitleScene+<OnActivateAsync>d__10.MoveNext"),
+    (KIOU_SLOT_NSS_SEARCHFULL,           0x5D32178, "ffc305d1",
+     "NativeSyncSession.SearchFull"),
 ]
 
 

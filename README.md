@@ -71,18 +71,18 @@ with conservative defaults:
 
 | Parameter | Retail default | Range |
 |---|---|---|
+| `Analysis Depth` | 15 | 1 – 36 |
 | `Analysis Hash` | 16 MB | 16 / 64 / 128 / 256 / 512 / 1024 MB |
 | `Analysis Skill` | 20 (max) | 1 – 20 |
 
-Higher hash gives the engine more working memory, generally producing
-stronger and more consistent analysis. Skill level 20 is already the
-maximum; lower values intentionally weaken the engine.
+Higher depth and hash give a stronger analysis at the cost of longer run
+time (depth scales roughly exponentially in branching factor). Skill level
+20 is already the maximum; lower values intentionally weaken the engine.
 
-**Depth tuning** (retail: 15 plies) is a planned future addition. The
-current hook targets (`SetHashSize`, `SetSkillLevel`) are void-return methods
-and hook cleanly; `SearchFull` returns a C# struct requiring extra ABI care
-around the `x8` sret register. See [`docs/analysis_depth.md`](docs/analysis_depth.md)
-when implemented.
+`SearchFull` returns a `SyncSearchResult` struct (arm64 uses an `x8` sret
+register the caller sets before BL). The depth hook declares its C return
+type as the matching struct so the compiler routes the orig() result back
+through that same sret pointer correctly — no asm shim needed.
 
 ### Settings UI
 

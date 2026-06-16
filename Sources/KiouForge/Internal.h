@@ -63,6 +63,23 @@ void install_Version_hook(uintptr_t unityBase);
 #endif
 
 // ---------------------------------------------------------------------------
+// SyncSearchResult — mirrors Project.RshogiEngine.SyncSearchResult (struct).
+// Defined here so Hook_AnalysisTune.m can declare the SearchFull hook with
+// the correct sret return type, letting the C compiler manage x8 correctly.
+//
+//   Bestmove string* : +0x00
+//   Score    int32   : +0x08
+//   PV       string* : +0x10
+//   Depth    int32   : +0x18
+// ---------------------------------------------------------------------------
+typedef struct {
+    void    *Bestmove;  // il2cpp String*
+    int32_t  Score;
+    void    *PV;        // il2cpp String*
+    int32_t  Depth;
+} KFSyncSearchResult;
+
+// ---------------------------------------------------------------------------
 // Runtime feature toggles.
 // ---------------------------------------------------------------------------
 typedef NS_ENUM(NSInteger, KiouFeature) {
@@ -96,10 +113,14 @@ void    kiou_setFpsIndex(int32_t idx);
 //   hash index maps to {16, 64, 128, 256, 512, 1024} MB
 //   skill range 1..20, default 20
 //
-// NOTE: depth override is deferred — NativeSyncSession.SearchFull returns a
-// struct (SyncSearchResult) making the hook ABI require extra care around the
-// sret convention. Hash + skill already provide substantial strengthening.
 // ---------------------------------------------------------------------------
+// Analysis depth.
+//   range 1..36; default 15 (retail SearchDepth constant).
+//   Stored as a plain int — no preset table.
+// ---------------------------------------------------------------------------
+int32_t kiou_analysisDepth(void);
+void    kiou_setAnalysisDepth(int32_t v);
+
 #define KIOU_ANALYSIS_HASH_PRESET_COUNT  6
 // Presets: {16, 64, 128, 256, 512, 1024}
 

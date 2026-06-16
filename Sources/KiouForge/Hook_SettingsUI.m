@@ -20,6 +20,7 @@ extern void KFApplyFPS(int32_t fps);
     <UITableViewDataSource, UITableViewDelegate>
 @property (nonatomic, strong) UITableView *tableView;
 @property (nonatomic, strong) UILabel *fpsValueLabel;
+@property (nonatomic, strong) UILabel *depthValueLabel;
 @property (nonatomic, strong) UILabel *hashValueLabel;
 @property (nonatomic, strong) UILabel *skillValueLabel;
 @end
@@ -34,9 +35,10 @@ static const int32_t kHashPresets[] = { 16, 64, 128, 256, 512, 1024 };
 #define KF_SECTION_COUNT    3
 
 #define KF_ENGINE_ROW_FPS   0
-#define KF_ENGINE_ROW_HASH  1
-#define KF_ENGINE_ROW_SKILL 2
-#define KF_ENGINE_ROW_COUNT 3
+#define KF_ENGINE_ROW_DEPTH 1
+#define KF_ENGINE_ROW_HASH  2
+#define KF_ENGINE_ROW_SKILL 3
+#define KF_ENGINE_ROW_COUNT 4
 
 #define KF_ABOUT_ROW_REPO    0
 #define KF_ABOUT_ROW_TWITTER 1
@@ -106,9 +108,11 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
     }
     if (section == KF_SECTION_ENGINE) {
         return @"FPS: preset list; >60 requires a ProMotion device. "
-               @"Analysis Hash and Skill apply to the post-game analysis "
-               @"engine (retail defaults: 16 MB / skill 20). "
-               @"Depth tuning is deferred — see docs/ for details.";
+               @"Analysis Depth / Hash / Skill apply to the on-device engine "
+               @"used for post-game kifu analysis only "
+               @"(retail defaults: depth 15 / 16 MB / skill 20). "
+               @"Higher depth and hash give a stronger analysis at the cost "
+               @"of longer run time.";
     }
     if (section == KF_SECTION_ABOUT) {
         return [NSString stringWithFormat:@"%s (%s)",
@@ -169,6 +173,18 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
             stepper.stepValue    = 1;
             stepper.value        = idx;
             [stepper addTarget:self action:@selector(onFpsChanged:)
+                forControlEvents:UIControlEventValueChanged];
+
+        } else if (indexPath.row == KF_ENGINE_ROW_DEPTH) {
+            cell.textLabel.text = @"Analysis Depth";
+            cell.detailTextLabel.text = [NSString stringWithFormat:@"%d",
+                                         (int)kiou_analysisDepth()];
+            self.depthValueLabel = cell.detailTextLabel;
+            stepper.minimumValue = 1;
+            stepper.maximumValue = 36;
+            stepper.stepValue    = 1;
+            stepper.value        = kiou_analysisDepth();
+            [stepper addTarget:self action:@selector(onDepthChanged:)
                 forControlEvents:UIControlEventValueChanged];
 
         } else if (indexPath.row == KF_ENGINE_ROW_HASH) {
@@ -244,6 +260,13 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
     self.fpsValueLabel.text = [NSString stringWithFormat:@"%d", fps];
     KFApplyFPS(fps);  // apply immediately
     file_log([NSString stringWithFormat:@"[SETTINGS] fps -> %d (idx=%d)", fps, idx]);
+}
+
+- (void)onDepthChanged:(UIStepper *)stepper {
+    int32_t v = (int32_t)stepper.value;
+    kiou_setAnalysisDepth(v);
+    self.depthValueLabel.text = [NSString stringWithFormat:@"%d", v];
+    file_log([NSString stringWithFormat:@"[SETTINGS] analysis depth -> %d", v]);
 }
 
 - (void)onHashChanged:(UIStepper *)stepper {

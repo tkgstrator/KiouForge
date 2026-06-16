@@ -4,6 +4,12 @@ All notable changes to KiouForge are documented here.
 
 ## [Unreleased]
 
+### Added
+- **Analysis Depth** — slider for the search depth used by the post-game
+  kifu analysis engine (retail default 15, range 1–36). Implemented by
+  hooking `NativeSyncSession.SearchFull` with a struct-return aware C
+  signature so the arm64 `x8` sret pointer the caller set is preserved.
+
 ## [0.1.0] — Initial release
 
 ### Added

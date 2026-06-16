@@ -31,14 +31,15 @@ enum {
     KIOU_SLOT_NSS_SETHASHSIZE           = 2,   // NativeSyncSession.SetHashSize
     KIOU_SLOT_NSS_SETSKILLEVEL          = 3,   // NativeSyncSession.SetSkillLevel
     KIOU_SLOT_TITLE_SCENE_MOVENEXT      = 4,   // TitleScene version stamp
-    KIOU_SLOT_COUNT                     = 5,
+    KIOU_SLOT_NSS_SEARCHFULL            = 5,   // NativeSyncSession.SearchFull (depth)
+    KIOU_SLOT_COUNT                     = 6,
 };
 
 // ---------------------------------------------------------------------------
 // __bss slot table base.
-// 5 slots * 8 B = 40 B below KiouKifExporter's slot at 0x8F90CD0.
+// 6 slots * 8 B = 48 B below KiouKifExporter's slot at 0x8F90CD0.
 // ---------------------------------------------------------------------------
-#define KIOU_HOOK_SLOT_BASE_RVA  0x8F90CA8   // 0x8F90CD0 - 5*8
+#define KIOU_HOOK_SLOT_BASE_RVA  0x8F90CA0   // 0x8F90CD0 - 6*8
 extern void **g_kiou_hook_slot;
 
 // ---------------------------------------------------------------------------
@@ -59,3 +60,4 @@ uintptr_t kiou_resolve_orig_trampoline(uintptr_t unityBase, uintptr_t siteRVA);
 #define KIOU_SITE_RVA_NSS_SETHASHSIZE           0x5D320E0
 #define KIOU_SITE_RVA_NSS_SETSKILLEVEL          0x5D3206C
 #define KIOU_SITE_RVA_TITLE_SCENE_MOVENEXT      0x5DCC728
+#define KIOU_SITE_RVA_NSS_SEARCHFULL            0x5D32178
