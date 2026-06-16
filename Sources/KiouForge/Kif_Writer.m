@@ -9,15 +9,18 @@
 //
 // Filename format:
 //
-//   {ISO8601_UTC}_{mode}_{startpos}.kif
+//   {ISO8601_UTC}_{mode}_{black}vs{white}_{startpos}.kif
 //
-//   ISO8601_UTC : "20260614T234500"
+//   ISO8601_UTC : "20260614T234500" (UTC)
 //   mode        : "AIMatchMode" | "CPUStreamMode" | "OnlinePvPMode"
 //                 | "LocalPvPMode" | "RecordReplayMode" | "unknown"
+//   black/white : player name strings, Unicode preserved (Japanese names
+//                 are kept as-is; only NUL, '/', and control characters
+//                 are stripped). Falls back to "unknown" per side.
 //   startpos    : "startpos" | "sfen-<8 hex>" | "unknown"
 //
-// All segments are sanitized so the result is always a safe POSIX
-// filename (no spaces, no slashes, ASCII only).
+// APFS and iOS Files handle Unicode filenames natively, so Japanese user
+// names are safe to include directly without percent-encoding or hashing.
 // ===========================================================================
 
 NSString *KFKifWriterEmit(void *gameCtrl,
@@ -47,13 +50,18 @@ NSString *KFKifWriterEmit(void *gameCtrl,
     }
 
     // 3. Build the filename.
+    //    Format: {timestamp}_{mode}_{black}vs{white}_{startpos}.kif
+    //    Player names are kept as-is (Unicode) — APFS and iOS Files handle
+    //    Japanese filenames natively. Only POSIX-unsafe characters (NUL, '/',
+    //    control codes) are stripped by KFKifSanitizeSegment.
     NSString *ts = KFKifTimestamp();
     NSString *modeSeg = KFKifSanitizeSegment(
         matchModeTag ? @(matchModeTag) : @"unknown", 32);
+    NSString *opponentsSeg = KFKifDescribeOpponents(matchConfig, stateStore);
     NSString *startposSeg = KFKifDescribeStartpos(gameCtrl);
 
-    NSString *filename = [NSString stringWithFormat:@"%@_%@_%@.kif",
-                          ts, modeSeg, startposSeg];
+    NSString *filename = [NSString stringWithFormat:@"%@_%@_%@_%@.kif",
+                          ts, modeSeg, opponentsSeg, startposSeg];
     NSString *path = [outDir stringByAppendingPathComponent:filename];
 
     // 4. Write atomically. KIF is a text format — UTF-8 with BOM-less

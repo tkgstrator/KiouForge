@@ -131,6 +131,7 @@ NSString *KFKifTimestamp(void);
 NSString *KFKifSanitizeSegment(NSString *s, NSUInteger maxChars);
 NSString *KFKifEnsureOutputDir(void);
 NSString *KFKifDescribeStartpos(void *gameCtrl);
+NSString *KFKifDescribeOpponents(void *matchConfig, void *stateStore);
 NSString *KFKifTextFromGameController(void *gameCtrl,
                                          void *matchConfig,
                                          void *stateStore,

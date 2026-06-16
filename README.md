@@ -6,38 +6,30 @@
 
 <p align="center">
   <em>Local quality-of-life tuning for <strong>KIOU</strong>.<br/>
-  Adjust frame-rate, suppress false AFK warnings, and strengthen the<br/>
-  on-device post-game kifu analysis engine — all client-side, zero server impact.</em>
+  Adjust frame-rate, suppress false AFK warnings, autosave kifu files,<br/>
+  and strengthen the on-device post-game kifu analysis engine — all client-side, zero server impact.</em>
 </p>
 
 <p align="center">
   <img alt="version" src="https://img.shields.io/badge/version-v0.1.0-2f80ed?style=flat-square" />
   <img alt="targets KIOU" src="https://img.shields.io/badge/targets-KIOU%201.0.1%20(11)-ff66a3?style=flat-square" />
-  <img alt="platform" src="https://img.shields.io/badge/platform-iOS%2015.0%E2%80%9326-blue?style=flat-square" />
+  <img alt="platform" src="https://img.shields.io/badge/platform-iOS%2013.0%2B-blue?style=flat-square" />
   <img alt="arch" src="https://img.shields.io/badge/arch-arm64%20rootless-555?style=flat-square" />
   <img alt="runs" src="https://img.shields.io/badge/runs-client--side%20only-1f9d55?style=flat-square" />
-  <img alt="scope" src="https://img.shields.io/badge/scope-authorized%20testing%20only-c69214?style=flat-square" />
+  <img alt="scope" src="https://img.shields.io/badge/scope-post--game%20analysis%20%26%20QoL-1f9d55?style=flat-square" />
 </p>
+
+[日本語版はこちら](README.ja.md)
 
 ---
 
-KiouForge is a local quality-of-life tweak for **KIOU** targeting **authorized
-penetration testing only**. It adjusts runtime behavior the retail client
-exposes no user controls for — frame-rate presets, AFK warning suppression,
-and the search parameters used by the **on-device post-game kifu analysis
-engine** — without modifying any game data or server state.
+**KIOU (棋桜)** is an online shogi game by 株式会社ネコノメ, available on the
+[App Store](https://apps.apple.com/jp/app/%E6%A3%8B%E6%A1%9C/id6755948307).
 
-### Client-side only
-
-Every change KiouForge makes happens inside the app on your device. It never:
-
-- crafts, replays, proxies, or intercepts any network request,
-- modifies currency, paid items, or any server-stored entity,
-- affects live match play (hint arrows, move suggestions, game rules),
-- changes the result or fairness of any match.
-
-Toggling every switch off and relaunching the app returns it to a fully
-vanilla state.
+KiouForge is a local quality-of-life extension for **KIOU** that unlocks
+settings the retail client doesn't expose — frame-rate presets, AFK warning
+suppression, post-game kifu analysis tuning, and kifu autosave. Every change
+runs on-device and never touches the server or affects live match play.
 
 ## Features
 
@@ -46,6 +38,7 @@ vanilla state.
 | **FPS Override** | Extends the retail 30/60 preset list to `{15, 24, 30, 45, 60, 90, 120}` fps. `>60` requires a ProMotion device; see [Performance](#performance) notes. |
 | **AFK Guard** | Suppresses the "no input detected" warning and the automatic surrender that follows. The retail timer fires after ~60 s of no input. Useful during long-think or analysis sessions. |
 | **Analysis Tune** | Raises the depth, hash, and skill parameters the on-device Rshogi NNUE engine uses **for post-game kifu analysis only**. Has no effect during live matches. |
+| **Kifu Autosave** | Automatically exports a `.kif` file to `Documents/KiouForge/` when any match ends. Filename includes timestamp, mode, player names (Unicode — Japanese names preserved as-is), and starting position. Per-mode toggles (AI, CPU Stream, Local PvP, Online PvP, Record/Replay) are available in the sub-screen; all modes default to on. |
 
 ## Performance
 
@@ -81,49 +74,70 @@ Higher depth and hash give a stronger analysis at the cost of longer run
 time (depth scales roughly exponentially in branching factor). Skill level
 20 is already the maximum; lower values intentionally weaken the engine.
 
-`SearchFull` returns a `SyncSearchResult` struct (arm64 uses an `x8` sret
-register the caller sets before BL). The depth hook declares its C return
-type as the matching struct so the compiler routes the orig() result back
-through that same sret pointer correctly — no asm shim needed.
+These parameters apply **only to the post-game review screen**. During a live
+match the engine runs with its built-in defaults — Analysis Tune has no
+effect on in-match AI support or move suggestions.
+
+## Kifu Autosave
+
+When a match ends, KiouForge writes a standard KIF 2.0 file to
+`Documents/KiouForge/` in the app's sandbox (visible in the Files app and
+Filza).
+
+**Filename format:**
+
+```
+{timestamp}_{mode}_{black}vs{white}_{startpos}.kif
+```
+
+| Segment | Example | Notes |
+|---|---|---|
+| `timestamp` | `20260614T234500` | UTC, ISO 8601 basic format |
+| `mode` | `OnlinePvPMode` | See mode names in the Features table |
+| `black` / `white` | `田中太郎vs佐藤花子` | Player names as-is; only `/` and control characters are stripped |
+| `startpos` | `startpos` | `startpos` for the standard initial position, `sfen-<8 hex>` for handicap games, `unknown` if unresolvable |
+
+**File contents:**
+
+Standard KIF 2.0 (UTF-8, no BOM) compatible with PiyoShogi, Shogi Browser Q,
+KifuCloud, and other Japanese kifu viewers. Includes player names, start
+date/time, time control, and ending reason where available.
 
 ## Settings UI
 
 Right-edge swipe → settings sheet with four sections:
 - **Features** — one toggle per row in the [Features](#features) table.
+  Tapping the **Kifu Autosave** row drills into a sub-screen with
+  per-mode toggles (AI Match, CPU Stream, Local PvP, Online PvP,
+  Record/Replay). The master toggle and the per-mode toggle must both be
+  on for autosave to fire in that mode.
 - **Performance** — FPS stepper.
 - **Engine** — Analysis Depth / Analysis Hash / Analysis Skill steppers.
 - **About** — repo link, author X handle, build commit.
 
 All values persist between launches.
 
-## Non-goals
-
-KiouForge explicitly does **not**:
-
-- unlock in-match hint arrows, best-move overlays, or any live-play assist,
-- bypass the premium kifu analysis subscription gate,
-- equip characters or skins the account does not own,
-- unlock voice lines, cosmetic items, or decoration supplies,
-- unlock AI Special Support or any combat advantage,
-- modify server-stored account data of any kind,
-- send any request or replay to the KIOU backend.
-
-If you need any of the above for authorized testing, see the sibling
-tweak **KiouEditor**.
 
 ## Compatibility
 
 | | |
 |---|---|
 | **KIOU app version** | `1.0.1` (`CFBundleVersion` 11) |
-| **iOS** | 15.0 – 26, arm64. Jailbroken `.deb`, TrollStore-injected jailed `.dylib`, or Patched IPA (works on TrollStore / Sideloadly / AltStore). |
+| **KIOU minimum iOS** | 10.0 (`MinimumOSVersion` in app bundle) |
+| **KiouForge minimum iOS** | 13.0 (requires `UIWindowScene`) |
+| **Tested on** | 15.0 – 26, arm64 |
+| **Distribution** | Jailbroken `.deb`, TrollStore-injected jailed `.dylib`, Patched IPA (Sideloadly / AltStore) |
 
 All hook sites are RVA-pinned to this exact KIOU build. After a KIOU update
-the RVAs will drift. See [`docs/porting.md`](docs/porting.md).
+the RVAs will drift.
 
 ## Build
 
 ### Jailbroken device (rootless)
+
+`make package install` transfers and installs the `.deb` over SSH.
+Requires OpenSSH on both sides — `openssh-server` on the device (install
+via Sileo/Zebra) and `ssh` on the host.
 
 ```sh
 make package
@@ -131,6 +145,10 @@ make package install THEOS_DEVICE_IP=<device-ip>
 ```
 
 ### Jailed dylib (TrollStore)
+
+TrollStore is only supported on specific iOS versions. Check the
+[supported versions table](https://ios.cfw.guide/installing-trollstore/)
+before proceeding.
 
 ```sh
 make jailed
@@ -140,7 +158,14 @@ make jailed
 Stage inside the decrypted KIOU `.app/Frameworks/`, add an `LC_LOAD_DYLIB`,
 and install via TrollStore.
 
-### Patched IPA (TrollStore / Sideloadly / AltStore)
+### Patched IPA (Sideload)
+
+For devices where TrollStore is unavailable. Install the patched IPA with
+[Sideloadly](https://sideloadly.io/) or [AltStore](https://altstore.io/).
+
+Requires a **decrypted** KIOU IPA (e.g. obtained via [palera1n](https://palera.in/) +
+Filza, or [TrollDecrypt](https://github.com/donato-fiore/TrollDecrypt)). The
+App Store download is FairPlay-encrypted and cannot be patched directly.
 
 ```sh
 mkdir -p assets
@@ -158,9 +183,3 @@ PYTHONPATH=shared:. python3 -m tools.verify_sites \
   --ipa    assets/Kiou-1.0.1.ipa
 ```
 
-## Documentation
-
-- [`docs/porting.md`](docs/porting.md) — re-deriving RVAs after a KIOU update.
-- [`docs/binpatch.md`](docs/binpatch.md) — Patched IPA pipeline notes.
-- [`docs/analysis_depth.md`](docs/analysis_depth.md) — planned depth-tuning
-  implementation (sret-aware hook or alternate interception point).

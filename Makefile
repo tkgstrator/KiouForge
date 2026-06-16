@@ -4,7 +4,7 @@
 # Targets:
 #   make            — JB rootless .deb (MSHookFunction via libsubstrate)
 #   make package    — same, packaged
-#   make jailed     — Dobby-static .dylib for Sideloadly injection (iOS 15-17)
+#   make jailed     — Dobby-static .dylib for Sideloadly injection (iOS 13+)
 #   make binpatch   — Dobby-static .dylib for the statically-patched IPA path
 #                     (iOS 18 sideload; the only mode that survives CSM).
 #   make ipa        — patched IPA assembled from $(DECRYPTED_IPA)
@@ -28,7 +28,7 @@ BUILD_COMMIT_DEFINE      := KIOU_FORGE_COMMIT
 # ---------------------------------------------------------------------------
 # Theos boilerplate.
 # ---------------------------------------------------------------------------
-TARGET                   := iphone:clang:latest:15.0
+TARGET                   := iphone:clang:latest:13.0
 INSTALL_TARGET_PROCESSES := $(TARGET_PROCESS)
 ARCHS                    := arm64
 THEOS_PACKAGE_SCHEME     := rootless

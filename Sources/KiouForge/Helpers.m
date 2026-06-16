@@ -346,28 +346,89 @@ NSString *KFKifTimestamp(void) {
 // ---------------------------------------------------------------------------
 // KFKifSanitizeSegment
 //
-// Keep [A-Za-z0-9_.-], replace anything else with '_'. Truncate to
-// `maxChars` code units (NSString length, which is fine — we're already
-// only writing ASCII at this point). Falls back to @"unknown" for empty.
+// Strip characters that are unsafe in POSIX filenames: NUL, '/', and any
+// C0/C1 control characters (U+0000–U+001F, U+007F–U+009F). Everything
+// else — including full-width kana, kanji, and other Unicode — is kept as-is
+// since APFS and iOS Files handle Unicode filenames natively, and KIOU user
+// names are predominantly Japanese.
+//
+// Truncates to `maxChars` NSString code units after stripping. Falls back to
+// @"unknown" when the result is empty.
 // ---------------------------------------------------------------------------
 NSString *KFKifSanitizeSegment(NSString *s, NSUInteger maxChars) {
     if (s.length == 0) return @"unknown";
     NSMutableString *out = [NSMutableString stringWithCapacity:s.length];
-    NSCharacterSet *safe = [NSCharacterSet characterSetWithCharactersInString:
-        @"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_.-"];
     for (NSUInteger i = 0; i < s.length; i++) {
         unichar c = [s characterAtIndex:i];
-        if (c < 128 && [safe characterIsMember:c]) {
-            [out appendFormat:@"%C", c];
-        } else {
-            [out appendString:@"_"];
-        }
+        // Strip NUL, path separator, and C0/C1 control characters.
+        if (c == 0x00 || c == '/') continue;
+        if (c <= 0x1F || (c >= 0x7F && c <= 0x9F)) continue;
+        [out appendFormat:@"%C", c];
     }
     if (out.length == 0) return @"unknown";
     if (out.length > maxChars) {
-        return [out substringToIndex:maxChars];
+        // Truncate at a safe code-unit boundary (avoid splitting a surrogate pair).
+        NSUInteger idx = maxChars;
+        if (idx > 0 && CFStringIsSurrogateHighCharacter([out characterAtIndex:idx - 1])) {
+            idx--;
+        }
+        return [out substringToIndex:idx];
     }
     return [out copy];
+}
+
+// ---------------------------------------------------------------------------
+// KFKifDescribeOpponents
+//
+// Build the "{black}vs{white}" filename segment from the live match objects.
+// Mirrors the name-resolution order used by KFKifFillWriteOptions:
+//   1. GameStateStore ReactiveProperty<PlayerInfo> (online friend matches —
+//      MatchConfig stays at the "プレイヤー" placeholder for the whole game,
+//      but stateStore gets the real name once peer info arrives)
+//   2. MatchConfig PlayerInfo.Name (AI / local matches)
+//
+// Either side may fall back to "unknown" independently.
+// Returns @"unknownvsunknown" when both sources are absent.
+// ---------------------------------------------------------------------------
+NSString *KFKifDescribeOpponents(void *matchConfig, void *stateStore) {
+    NSString *black = nil;
+    NSString *white = nil;
+
+    // --- source 1: GameStateStore (online) ---
+    if (ptrLooksValid(stateStore)) {
+        void *blackRP = readPtr(stateStore, GSS_OFF_BLACK_PLAYER_INFO);
+        void *whiteRP = readPtr(stateStore, GSS_OFF_WHITE_PLAYER_INFO);
+        if (ptrLooksValid(blackRP)) {
+            void *pi = readPtr(blackRP, RP_OFF_CURRENT_VALUE);
+            if (ptrLooksValid(pi)) {
+                black = il2cppStringToNSString(readPtr(pi, PI_OFF_NAME));
+            }
+        }
+        if (ptrLooksValid(whiteRP)) {
+            void *pi = readPtr(whiteRP, RP_OFF_CURRENT_VALUE);
+            if (ptrLooksValid(pi)) {
+                white = il2cppStringToNSString(readPtr(pi, PI_OFF_NAME));
+            }
+        }
+    }
+
+    // --- source 2: MatchConfig fallback (AI / local) ---
+    if ((!black || black.length == 0) && ptrLooksValid(matchConfig)) {
+        void *p = readPtr(matchConfig, MC_OFF_BLACK_PLAYER);
+        if (ptrLooksValid(p)) {
+            black = il2cppStringToNSString(readPtr(p, PI_OFF_NAME));
+        }
+    }
+    if ((!white || white.length == 0) && ptrLooksValid(matchConfig)) {
+        void *p = readPtr(matchConfig, MC_OFF_WHITE_PLAYER);
+        if (ptrLooksValid(p)) {
+            white = il2cppStringToNSString(readPtr(p, PI_OFF_NAME));
+        }
+    }
+
+    NSString *b = KFKifSanitizeSegment(black ?: @"", 24);
+    NSString *w = KFKifSanitizeSegment(white ?: @"", 24);
+    return [NSString stringWithFormat:@"%@vs%@", b, w];
 }
 
 // ---------------------------------------------------------------------------
