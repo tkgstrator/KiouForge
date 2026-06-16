@@ -29,16 +29,19 @@ extern void KFApplyFPS(int32_t fps);
 static const int32_t kFpsPresets[]  = { 15, 24, 30, 45, 60, 90, 120 };
 static const int32_t kHashPresets[] = { 16, 64, 128, 256, 512, 1024 };
 
-#define KF_SECTION_FEATURES 0
-#define KF_SECTION_ENGINE   1
-#define KF_SECTION_ABOUT    2
-#define KF_SECTION_COUNT    3
+#define KF_SECTION_FEATURES    0
+#define KF_SECTION_PERFORMANCE 1
+#define KF_SECTION_ENGINE      2
+#define KF_SECTION_ABOUT       3
+#define KF_SECTION_COUNT       4
 
-#define KF_ENGINE_ROW_FPS   0
-#define KF_ENGINE_ROW_DEPTH 1
-#define KF_ENGINE_ROW_HASH  2
-#define KF_ENGINE_ROW_SKILL 3
-#define KF_ENGINE_ROW_COUNT 4
+#define KF_PERF_ROW_FPS     0
+#define KF_PERF_ROW_COUNT   1
+
+#define KF_ENGINE_ROW_DEPTH 0
+#define KF_ENGINE_ROW_HASH  1
+#define KF_ENGINE_ROW_SKILL 2
+#define KF_ENGINE_ROW_COUNT 3
 
 #define KF_ABOUT_ROW_REPO    0
 #define KF_ABOUT_ROW_TWITTER 1
@@ -93,9 +96,10 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
 
 - (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section {
     switch (section) {
-        case KF_SECTION_FEATURES: return @"Features";
-        case KF_SECTION_ENGINE:   return @"Engine";
-        case KF_SECTION_ABOUT:    return @"About";
+        case KF_SECTION_FEATURES:    return @"Features";
+        case KF_SECTION_PERFORMANCE: return @"Performance";
+        case KF_SECTION_ENGINE:      return @"Engine";
+        case KF_SECTION_ABOUT:       return @"About";
         default: return nil;
     }
 }
@@ -106,9 +110,13 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
                @"sessions. Analysis Tune strengthens the on-device engine "
                @"used for post-game kifu analysis only — never in live play.";
     }
+    if (section == KF_SECTION_PERFORMANCE) {
+        return @"FPS preset; >60 requires a ProMotion device and the Patched "
+               @"IPA build (CADisableMinimumFrameDurationOnPhone is added "
+               @"automatically).";
+    }
     if (section == KF_SECTION_ENGINE) {
-        return @"FPS: preset list; >60 requires a ProMotion device. "
-               @"Analysis Depth / Hash / Skill apply to the on-device engine "
+        return @"Analysis Depth / Hash / Skill apply to the on-device engine "
                @"used for post-game kifu analysis only "
                @"(retail defaults: depth 15 / 16 MB / skill 20). "
                @"Higher depth and hash give a stronger analysis at the cost "
@@ -123,9 +131,10 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
     switch (section) {
-        case KF_SECTION_FEATURES: return KIOU_FEATURE_COUNT;
-        case KF_SECTION_ENGINE:   return KF_ENGINE_ROW_COUNT;
-        case KF_SECTION_ABOUT:    return KF_ABOUT_ROW_COUNT;
+        case KF_SECTION_FEATURES:    return KIOU_FEATURE_COUNT;
+        case KF_SECTION_PERFORMANCE: return KF_PERF_ROW_COUNT;
+        case KF_SECTION_ENGINE:      return KF_ENGINE_ROW_COUNT;
+        case KF_SECTION_ABOUT:       return KF_ABOUT_ROW_COUNT;
         default: return 0;
     }
 }
@@ -151,6 +160,33 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
         return cell;
     }
 
+    if (indexPath.section == KF_SECTION_PERFORMANCE) {
+        static NSString *kId = @"perf";
+        UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:kId];
+        if (!cell) {
+            cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleValue1
+                                          reuseIdentifier:kId];
+            cell.selectionStyle = UITableViewCellSelectionStyleNone;
+        }
+        cell.accessoryView = nil;
+        UIStepper *stepper = [[UIStepper alloc] init];
+        stepper.continuous = NO;
+
+        // Only one row in Performance (FPS) for now.
+        int32_t idx = kiou_fpsIndex();
+        cell.textLabel.text = @"FPS";
+        cell.detailTextLabel.text = [NSString stringWithFormat:@"%d", kFpsPresets[idx]];
+        self.fpsValueLabel = cell.detailTextLabel;
+        stepper.minimumValue = 0;
+        stepper.maximumValue = KIOU_FPS_PRESET_COUNT - 1;
+        stepper.stepValue    = 1;
+        stepper.value        = idx;
+        [stepper addTarget:self action:@selector(onFpsChanged:)
+            forControlEvents:UIControlEventValueChanged];
+        cell.accessoryView = stepper;
+        return cell;
+    }
+
     if (indexPath.section == KF_SECTION_ENGINE) {
         static NSString *kId = @"engine";
         UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:kId];
@@ -163,19 +199,7 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
         UIStepper *stepper = [[UIStepper alloc] init];
         stepper.continuous = NO;
 
-        if (indexPath.row == KF_ENGINE_ROW_FPS) {
-            int32_t idx = kiou_fpsIndex();
-            cell.textLabel.text = @"FPS";
-            cell.detailTextLabel.text = [NSString stringWithFormat:@"%d", kFpsPresets[idx]];
-            self.fpsValueLabel = cell.detailTextLabel;
-            stepper.minimumValue = 0;
-            stepper.maximumValue = KIOU_FPS_PRESET_COUNT - 1;
-            stepper.stepValue    = 1;
-            stepper.value        = idx;
-            [stepper addTarget:self action:@selector(onFpsChanged:)
-                forControlEvents:UIControlEventValueChanged];
-
-        } else if (indexPath.row == KF_ENGINE_ROW_DEPTH) {
+        if (indexPath.row == KF_ENGINE_ROW_DEPTH) {
             cell.textLabel.text = @"Analysis Depth";
             cell.detailTextLabel.text = [NSString stringWithFormat:@"%d",
                                          (int)kiou_analysisDepth()];

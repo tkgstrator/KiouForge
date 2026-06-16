@@ -39,13 +39,11 @@ vanilla state.
 
 | Toggle | What it does |
 |---|---|
-| **FPS Override** | Extends the retail 30/60 preset list to `{15, 24, 30, 45, 60, 90, 120}` fps. `>60` requires a ProMotion device; see [Engine](#engine) notes. |
+| **FPS Override** | Extends the retail 30/60 preset list to `{15, 24, 30, 45, 60, 90, 120}` fps. `>60` requires a ProMotion device; see [Performance](#performance) notes. |
 | **AFK Guard** | Suppresses the "no input detected" warning and the automatic surrender that follows. The retail timer fires after ~60 s of no input. Useful during long-think or analysis sessions. |
-| **Analysis Tune** | Raises the hash and skill parameters the on-device Rshogi NNUE engine uses **for post-game kifu analysis only**. Has no effect during live matches. |
+| **Analysis Tune** | Raises the depth, hash, and skill parameters the on-device Rshogi NNUE engine uses **for post-game kifu analysis only**. Has no effect during live matches. |
 
-## Engine
-
-### FPS
+## Performance
 
 The frame-rate stepper cycles through `{15, 24, 30, 45, 60, 90, 120}`.
 Default is **60** (retail value) so a fresh install changes nothing.
@@ -63,7 +61,7 @@ Achieving >60 fps requires:
 2. The patched IPA build (the binpatch pipeline adds
    `CADisableMinimumFrameDurationOnPhone = true` to Info.plist automatically).
 
-### Analysis engine
+## Engine
 
 The post-game analysis button (on the kifu detail screen) runs the
 on-device **Rshogi NNUE engine** (`NativeSyncSession`) locally. KIOU ships
@@ -84,11 +82,12 @@ register the caller sets before BL). The depth hook declares its C return
 type as the matching struct so the compiler routes the orig() result back
 through that same sret pointer correctly — no asm shim needed.
 
-### Settings UI
+## Settings UI
 
-Right-edge swipe → settings sheet with three sections:
-- **Features** — one toggle per row above.
-- **Engine** — FPS / Analysis Hash / Analysis Skill steppers.
+Right-edge swipe → settings sheet with four sections:
+- **Features** — one toggle per row in the [Features](#features) table.
+- **Performance** — FPS stepper.
+- **Engine** — Analysis Depth / Analysis Hash / Analysis Skill steppers.
 - **About** — repo link, author X handle, build commit.
 
 All values persist between launches.
