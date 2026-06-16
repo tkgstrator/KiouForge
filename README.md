@@ -9,7 +9,7 @@
 <p align="center">
   <img alt="version" src="https://img.shields.io/badge/version-v0.1.0-2f80ed?style=flat-square" />
   <img alt="targets KIOU" src="https://img.shields.io/badge/targets-KIOU%201.0.1%20(11)-ff66a3?style=flat-square" />
-  <img alt="platform" src="https://img.shields.io/badge/platform-iOS%2015.0%E2%80%9318-blue?style=flat-square" />
+  <img alt="platform" src="https://img.shields.io/badge/platform-iOS%2015.0%E2%80%9326-blue?style=flat-square" />
   <img alt="arch" src="https://img.shields.io/badge/arch-arm64%20rootless-555?style=flat-square" />
   <img alt="runs" src="https://img.shields.io/badge/runs-client--side%20only-1f9d55?style=flat-square" />
   <img alt="scope" src="https://img.shields.io/badge/scope-authorized%20testing%20only-c69214?style=flat-square" />
@@ -113,7 +113,7 @@ tweak **KiouEditor**.
 | | |
 |---|---|
 | **KIOU app version** | `1.0.1` (`CFBundleVersion` 11) |
-| **iOS** | 15.0 – 18, arm64. Jailbroken `.deb`, TrollStore-injected jailed `.dylib`, or Patched IPA (works on TrollStore / Sideloadly / AltStore). |
+| **iOS** | 15.0 – 26, arm64. Jailbroken `.deb`, TrollStore-injected jailed `.dylib`, or Patched IPA (works on TrollStore / Sideloadly / AltStore). |
 
 All hook sites are RVA-pinned to this exact KIOU build. After a KIOU update
 the RVAs will drift. See [`docs/porting.md`](docs/porting.md).
