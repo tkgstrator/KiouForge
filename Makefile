@@ -42,7 +42,13 @@ $(TWEAK_NAME)_FILES      += Sources/Common/binpatch.m
 
 BUILD_COMMIT             ?= $(shell git rev-parse --short=7 HEAD 2>/dev/null || echo unknown)
 
-KIOU_FORGE_VERSION       ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
+_CONTROL_VERSION         := $(shell grep '^Version:' control | awk '{print $$2}')
+# Theos sets DEBUG=1 by default; FINALPACKAGE=1 clears it for release builds.
+ifneq ($(FINALPACKAGE),1)
+KIOU_FORGE_VERSION       ?= $(_CONTROL_VERSION)-dbg
+else
+KIOU_FORGE_VERSION       ?= $(_CONTROL_VERSION)
+endif
 
 KIOU_FORGE_DEB_VERSION   := $(patsubst v%,%,$(KIOU_FORGE_VERSION))
 KIOU_FORGE_DEB_VERSION   := $(shell echo "$(KIOU_FORGE_DEB_VERSION)" | sed -E 's/^([^0-9])/0.0.0+\1/')
