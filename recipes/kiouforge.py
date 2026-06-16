@@ -7,8 +7,8 @@ assist feature.
 
 Patch chain is identical to KiouEditor (see that tweak for the full
 explanation). Differences:
-  - 6 hook slots (down from 24).
-  - Slot base: 0x8F90CA0 = 0x8F90CD0 - 6*8 (below KiouKifExporter's slot;
+  - 6 hook slots (title-screen stamp removed; was 7).
+  - Slot base: 0x8F90CA8 = 0x8F90CD8 - 6*8 (below KiouKifExporter's slot;
     KiouForge replaces autosave so both should not be installed together).
   - PLIST_KEYS adds CADisableMinimumFrameDurationOnPhone = True so >60 fps
     values reach the display on ProMotion devices.
@@ -58,8 +58,8 @@ CAVE_REGION = (0x8268024, 0x826C000)
 # Must match KIOU_HOOK_SLOT_BASE_RVA in binpatch_sites.h.
 # ---------------------------------------------------------------------------
 
-KIOU_SLOT_COUNT = 7
-HOOK_SLOT_BASE_RVA = 0x8F90CD8 - KIOU_SLOT_COUNT * 8  # 0x8F90CA0
+KIOU_SLOT_COUNT = 6
+HOOK_SLOT_BASE_RVA = 0x8F90CD8 - KIOU_SLOT_COUNT * 8  # 0x8F90CA8
 
 CAVE_PAYLOAD_SIZE = 84  # 21 instructions — identical to KiouEditor
 
@@ -116,9 +116,8 @@ KIOU_SLOT_SET_TARGET_FRAMERATE     = 0
 KIOU_SLOT_GAME_ORCHESTRATOR_IS_AFK = 1
 KIOU_SLOT_NSS_SETHASHSIZE          = 2
 KIOU_SLOT_NSS_SETSKILLEVEL         = 3
-KIOU_SLOT_TITLE_SCENE_MOVENEXT     = 4
-KIOU_SLOT_NSS_SEARCHFULL           = 5
-KIOU_SLOT_KIFU_OBSERVE             = 6
+KIOU_SLOT_NSS_SEARCHFULL           = 4
+KIOU_SLOT_KIFU_OBSERVE             = 5
 
 # Mode-index constants for the observer cave — MUST match KiouMatchMode enum
 # in Sources/KiouForge/Internal.h.
@@ -174,8 +173,6 @@ _SITES: list[tuple[int, int, str, str, object, str]] = [
      "NativeSyncSession.SetHashSize"),
     (KIOU_SLOT_NSS_SETSKILLEVEL,         0x5D3206C, "ff0301d1", CAVE_ENTRY,    None,
      "NativeSyncSession.SetSkillLevel"),
-    (KIOU_SLOT_TITLE_SCENE_MOVENEXT,     0x5DCC728, "ff0303d1", CAVE_ENTRY,    None,
-     "TitleScene+<OnActivateAsync>d__10.MoveNext"),
     (KIOU_SLOT_NSS_SEARCHFULL,           0x5D32178, "ffc305d1", CAVE_ENTRY,    None,
      "NativeSyncSession.SearchFull"),
     # --- Observer caves: all share KIOU_SLOT_KIFU_OBSERVE; aux is the
