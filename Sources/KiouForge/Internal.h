@@ -99,25 +99,11 @@ typedef struct {
 //   OnlinePvPMode    _gameAdapter @ 0x30
 //   RecordReplayMode _gameAdapter @ 0x18
 //
-// The order MUST match `_KIFU_OBSERVE_SITES` in recipes/kiouforge.py — the
+// The order MUST match _SITES observer rows in recipes/kiouforge.py — the
 // recipe bakes each mode index as `MOVZ X2,#imm` in the cave.
+// kKiouMatchModeAdapterOffsets / kKiouMatchModeTags are defined further
+// down, after the KiouMatchMode enum is declared.
 // ---------------------------------------------------------------------------
-
-static const uintptr_t kKiouMatchModeAdapterOffsets[KIOU_MMODE_COUNT] = {
-    [KIOU_MMODE_AI_MATCH]      = 0x48,
-    [KIOU_MMODE_CPU_STREAM]    = 0x50,
-    [KIOU_MMODE_LOCAL_PVP]     = 0x18,
-    [KIOU_MMODE_ONLINE_PVP]    = 0x30,
-    [KIOU_MMODE_RECORD_REPLAY] = 0x18,
-};
-
-static const char *const kKiouMatchModeTags[KIOU_MMODE_COUNT] = {
-    [KIOU_MMODE_AI_MATCH]      = "AIMatchMode",
-    [KIOU_MMODE_CPU_STREAM]    = "CPUStreamMode",
-    [KIOU_MMODE_LOCAL_PVP]     = "LocalPvPMode",
-    [KIOU_MMODE_ONLINE_PVP]    = "OnlinePvPMode",
-    [KIOU_MMODE_RECORD_REPLAY] = "RecordReplayMode",
-};
 
 // ShogiGameAdapter -> Project.ShogiCore.GameController field offset.
 #define KIOU_ADAPTER_OFF_GAMECTRL 0x10
@@ -205,6 +191,25 @@ typedef NS_ENUM(NSInteger, KiouMatchMode) {
 bool      kiou_kifuModeEnabled(KiouMatchMode m);
 void      kiou_setKifuModeEnabled(KiouMatchMode m, bool enabled);
 NSString *kiou_kifuModeLabel(KiouMatchMode m);
+
+// IMatchMode self -> _gameAdapter field offsets. The enum order MUST match
+// the observer rows of _SITES in recipes/kiouforge.py — the recipe bakes
+// each index as `MOVZ X2,#imm` in the cave.
+static const uintptr_t kKiouMatchModeAdapterOffsets[KIOU_MMODE_COUNT] = {
+    [KIOU_MMODE_AI_MATCH]      = 0x48,
+    [KIOU_MMODE_CPU_STREAM]    = 0x50,
+    [KIOU_MMODE_LOCAL_PVP]     = 0x18,
+    [KIOU_MMODE_ONLINE_PVP]    = 0x30,
+    [KIOU_MMODE_RECORD_REPLAY] = 0x18,
+};
+
+static const char *const kKiouMatchModeTags[KIOU_MMODE_COUNT] = {
+    [KIOU_MMODE_AI_MATCH]      = "AIMatchMode",
+    [KIOU_MMODE_CPU_STREAM]    = "CPUStreamMode",
+    [KIOU_MMODE_LOCAL_PVP]     = "LocalPvPMode",
+    [KIOU_MMODE_ONLINE_PVP]    = "OnlinePvPMode",
+    [KIOU_MMODE_RECORD_REPLAY] = "RecordReplayMode",
+};
 
 // ---------------------------------------------------------------------------
 // FPS preset table and accessor.

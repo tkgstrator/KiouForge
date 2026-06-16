@@ -164,7 +164,8 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
                         if (kiou_kifuModeEnabled((KiouMatchMode)i)) on++;
                     }
                     cell.detailTextLabel.text =
-                        [NSString stringWithFormat:@"%d of %d", on, KIOU_MMODE_COUNT];
+                        [NSString stringWithFormat:@"%d of %ld",
+                         on, (long)KIOU_MMODE_COUNT];
                 }
             } else {
                 cell.detailTextLabel.text =
