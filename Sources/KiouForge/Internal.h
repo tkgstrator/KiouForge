@@ -52,7 +52,6 @@ static inline void writeI32(void *base, uintptr_t off, int32_t val) {
 void KFPublishFrameRateSlots(uintptr_t unityBase);
 void KFPublishAfkDisableSlots(uintptr_t unityBase);
 void KFPublishAnalysisTuneSlots(uintptr_t unityBase);
-void KFPublishVersionSlots(uintptr_t unityBase);
 void KFPublishKifuObserveSlots(uintptr_t unityBase);
 void KFBinpatchBootstrap(void);
 BOOL KFBinpatchPublished(void);
@@ -60,7 +59,6 @@ BOOL KFBinpatchPublished(void);
 void KFInstallFrameRateHook(uintptr_t unityBase);
 void KFInstallAfkDisableHook(uintptr_t unityBase);
 void KFInstallAnalysisTuneHook(uintptr_t unityBase);
-void KFInstallVersionHook(uintptr_t unityBase);
 void KFInstallKifuObserveHook(uintptr_t unityBase);
 #endif
 

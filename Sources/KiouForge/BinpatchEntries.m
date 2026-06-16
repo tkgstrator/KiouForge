@@ -34,7 +34,6 @@ static void kfPublishAll(uintptr_t unityBase) {
     KFPublishFrameRateSlots(unityBase);
     KFPublishAfkDisableSlots(unityBase);
     KFPublishAnalysisTuneSlots(unityBase);
-    KFPublishVersionSlots(unityBase);
     KFPublishKifuObserveSlots(unityBase);
 }
 

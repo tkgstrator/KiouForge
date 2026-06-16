@@ -53,7 +53,6 @@ static void installUnityHooks(void) {
     KFInstallFrameRateHook(unityBase);
     KFInstallAfkDisableHook(unityBase);
     KFInstallAnalysisTuneHook(unityBase);
-    KFInstallVersionHook(unityBase);
     KFInstallKifuObserveHook(unityBase);
 
     g_unityHooked = YES;
