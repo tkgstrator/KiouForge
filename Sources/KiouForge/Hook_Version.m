@@ -29,7 +29,7 @@ typedef void *(*il2cpp_string_new_t)(const char *s);
 static TitleSceneMoveNext_t orig_TitleScene_MoveNext = NULL;
 static il2cpp_string_new_t  p_il2cpp_string_new = NULL;
 
-static void hook_TitleScene_MoveNext(void *sm) {
+static void HookTitleSceneMoveNext(void *sm) {
     if (ptrLooksValid(sm) && p_il2cpp_string_new) {
         @try {
             void *titleScene = readPtr(sm, 0x20);
@@ -94,7 +94,7 @@ void KFInstallVersionHook(uintptr_t unityBase) {
               @"[VERSION-DIAG] before MSHookFunction @0x%lx: %@", addr, before]);
 
     MSHookFunction((void *)addr,
-                   (void *)hook_TitleScene_MoveNext,
+                   (void *)HookTitleSceneMoveNext,
                    (void **)&orig_TitleScene_MoveNext);
 
     NSString *after = kfHexAt(addr);
@@ -119,7 +119,7 @@ void KFPublishVersionSlots(uintptr_t unityBase) {
         // guard on p_il2cpp_string_new and falls through to orig.
     }
     g_kfHookSlot[KIOU_SLOT_TITLE_SCENE_MOVENEXT] =
-        (void *)hook_TitleScene_MoveNext;
+        (void *)HookTitleSceneMoveNext;
     orig_TitleScene_MoveNext = (TitleSceneMoveNext_t)
         KFResolveOrigTrampoline(unityBase, RVA_TITLESCENE_MOVENEXT);
 

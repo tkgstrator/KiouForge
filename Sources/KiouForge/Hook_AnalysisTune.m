@@ -65,7 +65,7 @@ static NSSSetHashSize_t   orig_NSS_SetHashSize   = NULL;
 static NSSSetSkillLevel_t orig_NSS_SetSkillLevel = NULL;
 static NSSSearchFull_t    orig_NSS_SearchFull    = NULL;
 
-static void hook_NSS_SetHashSize(void *self, int32_t mb, void *mi) {
+static void HookNSSSetHashSize(void *self, int32_t mb, void *mi) {
     int32_t target = KFFeatureEnabled(KIOU_FEATURE_ANALYSIS_TUNE)
                    ? KFAnalysisHashMB() : mb;
     if (target != mb) {
@@ -75,7 +75,7 @@ static void hook_NSS_SetHashSize(void *self, int32_t mb, void *mi) {
     if (orig_NSS_SetHashSize) orig_NSS_SetHashSize(self, target, mi);
 }
 
-static void hook_NSS_SetSkillLevel(void *self, int32_t level, void *mi) {
+static void HookNSSSetSkillLevel(void *self, int32_t level, void *mi) {
     int32_t target = KFFeatureEnabled(KIOU_FEATURE_ANALYSIS_TUNE)
                    ? KFAnalysisSkillLevel() : level;
     if (target != level) {
@@ -85,7 +85,7 @@ static void hook_NSS_SetSkillLevel(void *self, int32_t level, void *mi) {
     if (orig_NSS_SetSkillLevel) orig_NSS_SetSkillLevel(self, target, mi);
 }
 
-static KFSyncSearchResult hook_NSS_SearchFull(void *self, void *sfen,
+static KFSyncSearchResult HookNSSSearchFull(void *self, void *sfen,
                                               int32_t depth, void *mi) {
     int32_t target = KFFeatureEnabled(KIOU_FEATURE_ANALYSIS_TUNE)
                    ? KFAnalysisDepth() : depth;
@@ -106,7 +106,7 @@ void KFInstallAnalysisTuneHook(uintptr_t unityBase) {
     {
         uintptr_t addr = unityBase + RVA_NSS_SETHASHSIZE;
         MSHookFunction((void *)addr,
-                       (void *)hook_NSS_SetHashSize,
+                       (void *)HookNSSSetHashSize,
                        (void **)&orig_NSS_SetHashSize);
         file_log([NSString stringWithFormat:
                   @"NativeSyncSession.SetHashSize hooked @0x%lx hash=%d MB",
@@ -115,7 +115,7 @@ void KFInstallAnalysisTuneHook(uintptr_t unityBase) {
     {
         uintptr_t addr = unityBase + RVA_NSS_SETSKILLEVEL;
         MSHookFunction((void *)addr,
-                       (void *)hook_NSS_SetSkillLevel,
+                       (void *)HookNSSSetSkillLevel,
                        (void **)&orig_NSS_SetSkillLevel);
         file_log([NSString stringWithFormat:
                   @"NativeSyncSession.SetSkillLevel hooked @0x%lx skill=%d",
@@ -124,7 +124,7 @@ void KFInstallAnalysisTuneHook(uintptr_t unityBase) {
     {
         uintptr_t addr = unityBase + RVA_NSS_SEARCHFULL;
         MSHookFunction((void *)addr,
-                       (void *)hook_NSS_SearchFull,
+                       (void *)HookNSSSearchFull,
                        (void **)&orig_NSS_SearchFull);
         file_log([NSString stringWithFormat:
                   @"NativeSyncSession.SearchFull hooked @0x%lx depth=%d",
@@ -133,15 +133,15 @@ void KFInstallAnalysisTuneHook(uintptr_t unityBase) {
 }
 #else
 void KFPublishAnalysisTuneSlots(uintptr_t unityBase) {
-    g_kfHookSlot[KIOU_SLOT_NSS_SETHASHSIZE] = (void *)hook_NSS_SetHashSize;
+    g_kfHookSlot[KIOU_SLOT_NSS_SETHASHSIZE] = (void *)HookNSSSetHashSize;
     orig_NSS_SetHashSize = (NSSSetHashSize_t)
         KFResolveOrigTrampoline(unityBase, RVA_NSS_SETHASHSIZE);
 
-    g_kfHookSlot[KIOU_SLOT_NSS_SETSKILLEVEL] = (void *)hook_NSS_SetSkillLevel;
+    g_kfHookSlot[KIOU_SLOT_NSS_SETSKILLEVEL] = (void *)HookNSSSetSkillLevel;
     orig_NSS_SetSkillLevel = (NSSSetSkillLevel_t)
         KFResolveOrigTrampoline(unityBase, RVA_NSS_SETSKILLEVEL);
 
-    g_kfHookSlot[KIOU_SLOT_NSS_SEARCHFULL] = (void *)hook_NSS_SearchFull;
+    g_kfHookSlot[KIOU_SLOT_NSS_SEARCHFULL] = (void *)HookNSSSearchFull;
     orig_NSS_SearchFull = (NSSSearchFull_t)
         KFResolveOrigTrampoline(unityBase, RVA_NSS_SEARCHFULL);
 

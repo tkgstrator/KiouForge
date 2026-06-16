@@ -49,27 +49,27 @@ static OnMatchEndAsync_t orig_RecordReplay_End  = NULL;
 // async state machine continues. KKE used a `static` thunk family with a
 // macro; we expand it inline here to keep the file scannable.
 
-static KFUniTaskRet thunk_AI_End(void *self, void *ct) {
+static KFUniTaskRet ThunkAIEnd(void *self, void *ct) {
     KFKifuObserveMatchEnd(self, ct, KIOU_MMODE_AI_MATCH);
     if (orig_AI_End) return orig_AI_End(self, ct);
     return (KFUniTaskRet){ NULL, NULL };
 }
-static KFUniTaskRet thunk_CPUStream_End(void *self, void *ct) {
+static KFUniTaskRet ThunkCPUStreamEnd(void *self, void *ct) {
     KFKifuObserveMatchEnd(self, ct, KIOU_MMODE_CPU_STREAM);
     if (orig_CPUStream_End) return orig_CPUStream_End(self, ct);
     return (KFUniTaskRet){ NULL, NULL };
 }
-static KFUniTaskRet thunk_Local_End(void *self, void *ct) {
+static KFUniTaskRet ThunkLocalEnd(void *self, void *ct) {
     KFKifuObserveMatchEnd(self, ct, KIOU_MMODE_LOCAL_PVP);
     if (orig_Local_End) return orig_Local_End(self, ct);
     return (KFUniTaskRet){ NULL, NULL };
 }
-static KFUniTaskRet thunk_Online_End(void *self, void *ct) {
+static KFUniTaskRet ThunkOnlineEnd(void *self, void *ct) {
     KFKifuObserveMatchEnd(self, ct, KIOU_MMODE_ONLINE_PVP);
     if (orig_Online_End) return orig_Online_End(self, ct);
     return (KFUniTaskRet){ NULL, NULL };
 }
-static KFUniTaskRet thunk_RecordReplay_End(void *self, void *ct) {
+static KFUniTaskRet ThunkRecordReplayEnd(void *self, void *ct) {
     KFKifuObserveMatchEnd(self, ct, KIOU_MMODE_RECORD_REPLAY);
     if (orig_RecordReplay_End) return orig_RecordReplay_End(self, ct);
     return (KFUniTaskRet){ NULL, NULL };
@@ -86,15 +86,15 @@ void KFInstallKifuObserveHook(uintptr_t unityBase) {
     struct { const char *tag; uintptr_t rva;
              void *thunk; void **origSlot; } entries[] = {
         { "AIMatchMode",      RVA_AI_END,
-          (void *)thunk_AI_End,           (void **)&orig_AI_End },
+          (void *)ThunkAIEnd,           (void **)&orig_AI_End },
         { "CPUStreamMode",    RVA_CPUSTREAM_END,
-          (void *)thunk_CPUStream_End,    (void **)&orig_CPUStream_End },
+          (void *)ThunkCPUStreamEnd,    (void **)&orig_CPUStream_End },
         { "LocalPvPMode",     RVA_LOCAL_END,
-          (void *)thunk_Local_End,        (void **)&orig_Local_End },
+          (void *)ThunkLocalEnd,        (void **)&orig_Local_End },
         { "OnlinePvPMode",    RVA_ONLINE_END,
-          (void *)thunk_Online_End,       (void **)&orig_Online_End },
+          (void *)ThunkOnlineEnd,       (void **)&orig_Online_End },
         { "RecordReplayMode", RVA_RECORDREPLAY_END,
-          (void *)thunk_RecordReplay_End, (void **)&orig_RecordReplay_End },
+          (void *)ThunkRecordReplayEnd, (void **)&orig_RecordReplay_End },
     };
     for (size_t i = 0; i < sizeof(entries)/sizeof(entries[0]); i++) {
         uintptr_t addr = unityBase + entries[i].rva;

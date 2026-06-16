@@ -34,7 +34,7 @@ static SetTargetFrameRate_t orig_set_targetFrameRate = NULL;
 // Unity base address cached at hook-install time for the direct-call helper.
 static uintptr_t g_unityBaseForFPS = 0;
 
-static void hook_set_targetFrameRate(int32_t value, void *mi) {
+static void HookSetTargetFrameRate(int32_t value, void *mi) {
     int32_t v = KFFeatureEnabled(KIOU_FEATURE_FPS_OVERRIDE)
               ? KFTargetFPS() : value;
     if (v != value) {
@@ -60,7 +60,7 @@ void KFInstallFrameRateHook(uintptr_t unityBase) {
     g_unityBaseForFPS = unityBase;
     uintptr_t addr = unityBase + RVA_SET_TARGET_FRAMERATE;
     MSHookFunction((void *)addr,
-                   (void *)hook_set_targetFrameRate,
+                   (void *)HookSetTargetFrameRate,
                    (void **)&orig_set_targetFrameRate);
     file_log([NSString stringWithFormat:
               @"Application.set_targetFrameRate hooked @0x%lx (base+0x%x) fps=%d",
@@ -70,7 +70,7 @@ void KFInstallFrameRateHook(uintptr_t unityBase) {
 void KFPublishFrameRateSlots(uintptr_t unityBase) {
     g_unityBaseForFPS = unityBase;
     g_kfHookSlot[KIOU_SLOT_SET_TARGET_FRAMERATE] =
-        (void *)hook_set_targetFrameRate;
+        (void *)HookSetTargetFrameRate;
     orig_set_targetFrameRate = (SetTargetFrameRate_t)
         KFResolveOrigTrampoline(unityBase, RVA_SET_TARGET_FRAMERATE);
     file_log([NSString stringWithFormat:
