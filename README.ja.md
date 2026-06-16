@@ -27,9 +27,10 @@
 KiouForge は KIOU の快適化拡張ツールで、公式クライアントでは設定できない項目を解放します — フレームレートプリセット、AFK警告の抑制、対局後の棋譜解析チューニング、棋譜の自動保存。すべての変更はデバイス内で完結し、サーバーへの通信や対局中の動作には一切影響しません。
 
 <p align="center">
-  <img src="docs/screenshots/kiou-title.webp" alt="KIOU タイトル画面" width="240" />
-  <img src="docs/screenshots/settings-main.webp" alt="KiouForge 設定画面" width="240" />
-  <img src="docs/screenshots/settings-kifu-autosave.webp" alt="棋譜自動保存のモード別サブ画面" width="240" />
+  <img src="docs/screenshots/kiou-title.webp" alt="KIOU タイトル画面" width="200" />
+  <img src="docs/screenshots/kiou-home.webp" alt="KIOU ホーム画面" width="200" />
+  <img src="docs/screenshots/settings-main.webp" alt="KiouForge 設定画面" width="200" />
+  <img src="docs/screenshots/settings-kifu-autosave.webp" alt="棋譜自動保存のモード別サブ画面" width="200" />
 </p>
 
 ## 機能一覧

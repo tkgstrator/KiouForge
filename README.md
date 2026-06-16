@@ -32,9 +32,10 @@ suppression, post-game kifu analysis tuning, and kifu autosave. Every change
 runs on-device and never touches the server or affects live match play.
 
 <p align="center">
-  <img src="docs/screenshots/kiou-title.webp" alt="KIOU title screen" width="240" />
-  <img src="docs/screenshots/settings-main.webp" alt="KiouForge settings sheet" width="240" />
-  <img src="docs/screenshots/settings-kifu-autosave.webp" alt="Kifu Autosave per-mode sub-screen" width="240" />
+  <img src="docs/screenshots/kiou-title.webp" alt="KIOU title screen" width="200" />
+  <img src="docs/screenshots/kiou-home.webp" alt="KIOU home screen" width="200" />
+  <img src="docs/screenshots/settings-main.webp" alt="KiouForge settings sheet" width="200" />
+  <img src="docs/screenshots/settings-kifu-autosave.webp" alt="Kifu Autosave per-mode sub-screen" width="200" />
 </p>
 
 ## Features
