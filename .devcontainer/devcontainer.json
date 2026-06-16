@@ -9,7 +9,6 @@
     "remoteUser": "vscode",
     "remoteEnv": {
         "WAKATIME_API_KEY": "${localEnv:WAKATIME_API_KEY}",
-        "GH_TOKEN": "${localEnv:GH_TOKEN}",
         "UV_LINK_MODE": "copy",
         "ANTHROPIC_BASE_URL": "${localEnv:ANTHROPIC_BASE_URL}",
         "ANTHROPIC_AUTH_TOKEN": "${localEnv:ANTHROPIC_AUTH_TOKEN}"
@@ -55,11 +54,8 @@
             "extensions": [
                 "Anthropic.claude-code",
                 "EditorConfig.EditorConfig",
-                "GitHub.copilot",
-                "GitHub.copilot-chat",
                 "PKief.material-icon-theme",
                 "antfu.file-nesting",
-                "bierner.markdown-mermaid",
                 "bierner.markdown-preview-github-styles",
                 "charliermarsh.ruff",
                 "eamodio.gitlens",
@@ -69,8 +65,7 @@
                 "pHofer94.vscode-taskviewexplorer",
                 "redhat.vscode-yaml",
                 "swiftlang.swift-vscode",
-                "tamasfe.even-better-toml",
-                "vsls-contrib.gitdoc"
+                "tamasfe.even-better-toml"
             ],
             "settings": {}
         }
