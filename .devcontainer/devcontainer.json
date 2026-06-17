@@ -58,7 +58,6 @@
                 "antfu.file-nesting",
                 "bierner.markdown-preview-github-styles",
                 "charliermarsh.ruff",
-                "eamodio.gitlens",
                 "jebbs.markdown-extended",
                 "ms-python.black-formatter",
                 "ms-python.python",
