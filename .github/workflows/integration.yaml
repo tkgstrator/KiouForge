@@ -1,0 +1,169 @@
+name: integration
+
+# CI: build the rootless .deb (MobileSubstrate path), the jailed .dylib
+# (Dobby-static path), and the Chinlan .dylib (iOS 18 __DATA slot-table
+# path) on every push to master / develop and on every PR targeting either.
+# Fails fast if a sideloaded dylib accidentally picks up an external
+# hook-engine dependency, since that would brick Sideloadly installs.
+
+on:
+  push:
+    branches: [master, develop]
+  pull_request:
+    branches: [master, develop]
+  workflow_dispatch:
+
+concurrency:
+  group: integration-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  THEOS: ${{ github.workspace }}/theos
+  IOS_SDK_VERSION: "16.5"
+  LDID_VERSION: "v2.1.5-procursus7"
+
+jobs:
+  commitlint:
+    name: Commit Lint
+    if: github.event.action != 'closed' || github.event.pull_request.merged != true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          # commitlint needs to walk back `pull_request.commits` commits to
+          # cover every PR commit individually, so the default shallow
+          # clone (`fetch-depth: 1`) can't resolve `HEAD~N`.
+          fetch-depth: 0
+      - name: Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install commitlint
+        run: |
+          bun install conventional-changelog-conventionalcommits
+          bun install @commitlint/config-conventional
+          bun install commitlint@latest
+      - name: Validate current commit (last commit) with commitlint
+        if: github.event_name == 'push'
+        run: bunx commitlint --last --verbose
+      - name: Validate PR commits with commitlint
+        if: github.event_name == 'pull_request'
+        run: bunx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
+
+  build:
+    name: Build (${{ matrix.flavor }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - flavor: substrate
+            make_args: ""
+            artifact_name: kiouforge-substrate-deb
+            artifact_path: packages/*.deb
+          - flavor: jailed
+            make_args: "jailed"
+            artifact_name: kiouforge-jailed-dylib
+            artifact_path: packages/jailed/KiouForge.dylib
+          - flavor: chinlan
+            make_args: "chinlan"
+            artifact_name: kiouforge-chinlan-dylib
+            artifact_path: packages/chinlan/KiouForge.dylib
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v5
+        with:
+          # Sources/Chinlan + shared/ are git submodules referenced by
+          # the Makefile. Without recursive checkout the Theos build
+          # fails with "file not found".
+          submodules: recursive
+
+      - name: Install host build tools
+        # libtinfo6 / libncurses6 are runtime deps of L1ghtmann's iOS
+        # cross-clang (mirror what the devcontainer's Dockerfile installs).
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+              build-essential curl git make perl xz-utils \
+              libplist-utils libc++-dev \
+              libtinfo6 libncurses6
+
+      - name: Install ldid
+        run: |
+          curl -L -o /tmp/ldid \
+              "https://github.com/ProcursusTeam/ldid/releases/download/${LDID_VERSION}/ldid_linux_x86_64"
+          sudo install -m 0755 /tmp/ldid /usr/local/bin/ldid
+          ldid -V || ldid 2>&1 | head -1 || true
+
+      - name: Cache Theos
+        id: theos-cache
+        uses: actions/cache@v5
+        with:
+          path: theos
+          # v3: switched to L1ghtmann's modern toolchain (was sbingner's
+          # libtinfo5-linked v10), so any previous cache is unusable.
+          key: theos-linux-${{ env.IOS_SDK_VERSION }}-v3
+
+      - name: Install Theos
+        if: steps.theos-cache.outputs.cache-hit != 'true'
+        run: |
+          git clone --recursive https://github.com/theos/theos.git "$THEOS"
+
+          ARCH=$(uname -m)
+          curl -fsSL \
+              "https://github.com/L1ghtmann/llvm-project/releases/latest/download/iOSToolchain-${ARCH}.tar.xz" \
+            | tar xJ -C "$THEOS/toolchain"
+
+          mkdir -p "$THEOS/sdks"
+          curl -L -o /tmp/sdk.tar.gz \
+              "https://github.com/theos/sdks/archive/master.tar.gz"
+          tar -xf /tmp/sdk.tar.gz -C /tmp
+          cp -R "/tmp/sdks-master/iPhoneOS${IOS_SDK_VERSION}.sdk" \
+                "$THEOS/sdks/"
+
+      - name: Verify Theos
+        run: |
+          test -d "$THEOS/sdks/iPhoneOS${IOS_SDK_VERSION}.sdk"
+          test -x "$THEOS/toolchain/linux/iphone/bin/clang"
+          "$THEOS/toolchain/linux/iphone/bin/clang" --version
+
+      - name: Run build
+        run: |
+          make clean
+          make ${{ matrix.make_args }}
+
+      - name: Stage rootless .deb
+        if: matrix.flavor == 'substrate'
+        run: |
+          make package
+          ls -la packages/
+
+      - name: Sanity check sideloaded dylib (no external hook engine)
+        if: matrix.flavor == 'jailed' || matrix.flavor == 'chinlan'
+        run: |
+          case "${{ matrix.flavor }}" in
+            jailed)  DYLIB=packages/jailed/KiouForge.dylib ;;
+            chinlan) DYLIB=packages/chinlan/KiouForge.dylib ;;
+          esac
+          test -f "$DYLIB"
+          if command -v otool >/dev/null 2>&1; then
+              otool -L "$DYLIB"
+              if otool -L "$DYLIB" | grep -E "libsubstrate|libdobby"; then
+                  echo "::error::${{ matrix.flavor }} dylib leaks an external hook-engine dependency"
+                  exit 1
+              fi
+          else
+              strings "$DYLIB" | grep -E "libsubstrate|libdobby\.dylib" \
+                  && { echo "::error::${{ matrix.flavor }} dylib leaks an external hook-engine dependency"; exit 1; } \
+                  || echo "no external hook-engine references found"
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_path }}
+          if-no-files-found: error
+          retention-days: 14

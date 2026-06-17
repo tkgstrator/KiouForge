@@ -69,7 +69,7 @@ static void HookNSSSetHashSize(void *self, int32_t mb, void *mi) {
     int32_t target = KFFeatureEnabled(KIOU_FEATURE_ANALYSIS_TUNE)
                    ? KFAnalysisHashMB() : mb;
     if (target != mb) {
-        file_log([NSString stringWithFormat:
+        IPALog([NSString stringWithFormat:
                   @"[ANALYSIS] SetHashSize %d -> %d MB (override)", mb, target]);
     }
     if (orig_NSS_SetHashSize) orig_NSS_SetHashSize(self, target, mi);
@@ -79,7 +79,7 @@ static void HookNSSSetSkillLevel(void *self, int32_t level, void *mi) {
     int32_t target = KFFeatureEnabled(KIOU_FEATURE_ANALYSIS_TUNE)
                    ? KFAnalysisSkillLevel() : level;
     if (target != level) {
-        file_log([NSString stringWithFormat:
+        IPALog([NSString stringWithFormat:
                   @"[ANALYSIS] SetSkillLevel %d -> %d (override)", level, target]);
     }
     if (orig_NSS_SetSkillLevel) orig_NSS_SetSkillLevel(self, target, mi);
@@ -90,7 +90,7 @@ static KFSyncSearchResult HookNSSSearchFull(void *self, void *sfen,
     int32_t target = KFFeatureEnabled(KIOU_FEATURE_ANALYSIS_TUNE)
                    ? KFAnalysisDepth() : depth;
     if (target != depth) {
-        file_log([NSString stringWithFormat:
+        IPALog([NSString stringWithFormat:
                   @"[ANALYSIS] SearchFull depth %d -> %d (override)",
                   depth, target]);
     }
@@ -101,14 +101,14 @@ static KFSyncSearchResult HookNSSSearchFull(void *self, void *sfen,
     return empty;
 }
 
-#ifndef IPA_BINPATCH
+#ifndef IPA_CHINLAN
 void KFInstallAnalysisTuneHook(uintptr_t unityBase) {
     {
         uintptr_t addr = unityBase + RVA_NSS_SETHASHSIZE;
         MSHookFunction((void *)addr,
                        (void *)HookNSSSetHashSize,
                        (void **)&orig_NSS_SetHashSize);
-        file_log([NSString stringWithFormat:
+        IPALog([NSString stringWithFormat:
                   @"NativeSyncSession.SetHashSize hooked @0x%lx hash=%d MB",
                   (unsigned long)addr, (int)KFAnalysisHashMB()]);
     }
@@ -117,7 +117,7 @@ void KFInstallAnalysisTuneHook(uintptr_t unityBase) {
         MSHookFunction((void *)addr,
                        (void *)HookNSSSetSkillLevel,
                        (void **)&orig_NSS_SetSkillLevel);
-        file_log([NSString stringWithFormat:
+        IPALog([NSString stringWithFormat:
                   @"NativeSyncSession.SetSkillLevel hooked @0x%lx skill=%d",
                   (unsigned long)addr, (int)KFAnalysisSkillLevel()]);
     }
@@ -126,7 +126,7 @@ void KFInstallAnalysisTuneHook(uintptr_t unityBase) {
         MSHookFunction((void *)addr,
                        (void *)HookNSSSearchFull,
                        (void **)&orig_NSS_SearchFull);
-        file_log([NSString stringWithFormat:
+        IPALog([NSString stringWithFormat:
                   @"NativeSyncSession.SearchFull hooked @0x%lx depth=%d",
                   (unsigned long)addr, (int)KFAnalysisDepth()]);
     }
@@ -145,8 +145,8 @@ void KFPublishAnalysisTuneSlots(uintptr_t unityBase) {
     orig_NSS_SearchFull = (NSSSearchFull_t)
         KFResolveOrigTrampoline(unityBase, RVA_NSS_SEARCHFULL);
 
-    file_log([NSString stringWithFormat:
-              @"[BINPATCH] AnalysisTune: SetHashSize slot[%d]=%p orig=%p, "
+    IPALog([NSString stringWithFormat:
+              @"[CHINLAN] AnalysisTune: SetHashSize slot[%d]=%p orig=%p, "
               @"SetSkillLevel slot[%d]=%p orig=%p, "
               @"SearchFull slot[%d]=%p orig=%p "
               @"(depth=%d hash=%d MB skill=%d)",

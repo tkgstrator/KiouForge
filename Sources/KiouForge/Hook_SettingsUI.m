@@ -317,7 +317,7 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
 - (void)onFeatureToggle:(UISwitch *)sw {
     KiouFeature f = (KiouFeature)sw.tag;
     KFSetFeatureEnabled(f, sw.isOn);
-    file_log([NSString stringWithFormat:
+    IPALog([NSString stringWithFormat:
               @"[SETTINGS] %@ -> %@", KFFeatureLabel(f), sw.isOn ? @"ON" : @"OFF"]);
 }
 
@@ -327,14 +327,14 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
     int32_t fps = KFTargetFPS();
     self.fpsValueLabel.text = [NSString stringWithFormat:@"%d", fps];
     KFApplyFPS(fps);  // apply immediately
-    file_log([NSString stringWithFormat:@"[SETTINGS] fps -> %d (idx=%d)", fps, idx]);
+    IPALog([NSString stringWithFormat:@"[SETTINGS] fps -> %d (idx=%d)", fps, idx]);
 }
 
 - (void)onDepthChanged:(UIStepper *)stepper {
     int32_t v = (int32_t)stepper.value;
     KFSetAnalysisDepth(v);
     self.depthValueLabel.text = [NSString stringWithFormat:@"%d", v];
-    file_log([NSString stringWithFormat:@"[SETTINGS] analysis depth -> %d", v]);
+    IPALog([NSString stringWithFormat:@"[SETTINGS] analysis depth -> %d", v]);
 }
 
 - (void)onHashChanged:(UIStepper *)stepper {
@@ -342,14 +342,14 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
     KFSetAnalysisHashIndex(idx);
     int32_t mb = KFAnalysisHashMB();
     self.hashValueLabel.text = [NSString stringWithFormat:@"%d MB", mb];
-    file_log([NSString stringWithFormat:@"[SETTINGS] analysis hash -> %d MB (idx=%d)", mb, idx]);
+    IPALog([NSString stringWithFormat:@"[SETTINGS] analysis hash -> %d MB (idx=%d)", mb, idx]);
 }
 
 - (void)onSkillChanged:(UIStepper *)stepper {
     int32_t v = (int32_t)stepper.value;
     KFSetAnalysisSkillLevel(v);
     self.skillValueLabel.text = [NSString stringWithFormat:@"%d", v];
-    file_log([NSString stringWithFormat:@"[SETTINGS] analysis skill -> %d", v]);
+    IPALog([NSString stringWithFormat:@"[SETTINGS] analysis skill -> %d", v]);
 }
 
 @end
@@ -418,7 +418,7 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
 - (void)onModeToggle:(UISwitch *)sw {
     KiouMatchMode m = (KiouMatchMode)sw.tag;
     KFSetKifuModeEnabled(m, sw.isOn);
-    file_log([NSString stringWithFormat:
+    IPALog([NSString stringWithFormat:
               @"[SETTINGS] kifu mode %@ -> %@",
               KFKifuModeLabel(m), sw.isOn ? @"ON" : @"OFF"]);
 }
@@ -447,9 +447,9 @@ static UIWindow *kfActiveWindow(void) {
 void KFPresentSettings(void) {
     dispatch_async(dispatch_get_main_queue(), ^{
         UIWindow *win = kfActiveWindow();
-        if (!win) { file_log(@"[SETTINGS] no active window"); return; }
+        if (!win) { IPALog(@"[SETTINGS] no active window"); return; }
         UIViewController *root = win.rootViewController;
-        if (!root) { file_log(@"[SETTINGS] no root vc"); return; }
+        if (!root) { IPALog(@"[SETTINGS] no root vc"); return; }
         UIViewController *top = root;
         while (top.presentedViewController) top = top.presentedViewController;
 
@@ -461,7 +461,7 @@ void KFPresentSettings(void) {
             [[UINavigationController alloc] initWithRootViewController:root_vc];
         nav.modalPresentationStyle = UIModalPresentationFormSheet;
         [top presentViewController:nav animated:YES completion:^{
-            file_log(@"[SETTINGS] modal presented");
+            IPALog(@"[SETTINGS] modal presented");
         }];
     });
 }

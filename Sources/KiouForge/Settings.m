@@ -64,7 +64,7 @@ static UIWindow *KFKeyWindow(void) {
 - (void)handleEdgePan:(UIScreenEdgePanGestureRecognizer *)gr {
     // Fire on Began only — we don't need to track the drag.
     if (gr.state != UIGestureRecognizerStateBegan) return;
-    file_log(@"[KF] right-edge swipe began -> presenting settings");
+    IPALog(@"[KF] right-edge swipe began -> presenting settings");
     KFPresentSettings();
 }
 
@@ -98,7 +98,7 @@ void KFGestureInstall(void) {
                 UIScreenEdgePanGestureRecognizer *ep =
                     (UIScreenEdgePanGestureRecognizer *)gr;
                 if (ep.edges & UIRectEdgeRight) {
-                    file_log(@"[KF] right-edge gesture already installed, skipping");
+                    IPALog(@"[KF] right-edge gesture already installed, skipping");
                     return;
                 }
             }
@@ -115,6 +115,6 @@ void KFGestureInstall(void) {
         gr.edges = UIRectEdgeRight;
         [win addGestureRecognizer:gr];
 
-        file_log(@"[KF] right-edge swipe gesture installed on key window");
+        IPALog(@"[KF] right-edge swipe gesture installed on key window");
     });
 }

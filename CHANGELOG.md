@@ -19,5 +19,5 @@ Initial release.
 
 ### Artifacts
 
-- `.deb` (JB rootless), `-jailed.dylib` (TrollStore), `-binpatch.dylib` (Patched IPA build), and `SHA256SUMS`.
+- `.deb` (JB rootless), `-jailed.dylib` (TrollStore), `-chinlan.dylib` (Patched IPA build), and `SHA256SUMS`.
 - Patched IPA itself is **not** distributed — build locally via `make ipa DECRYPTED_IPA=...`.

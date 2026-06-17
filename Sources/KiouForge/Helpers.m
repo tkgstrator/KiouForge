@@ -6,7 +6,7 @@
 #import <string.h>
 
 // ===========================================================================
-// kif_trace_log — KIF_TRACE-gated wrapper around file_log.
+// kif_trace_log — KIF_TRACE-gated wrapper around IPALog.
 //
 // Diagnostic logging inside KFKifFillWriteOptions (the KIFWriteOptions
 // fill path) is verbose enough that we don't want it in release builds.
@@ -18,7 +18,7 @@
 // ===========================================================================
 #if defined(KIF_TRACE) && KIF_TRACE
   #define kif_trace_log(fmt, ...)                                          \
-      file_log([NSString stringWithFormat:(fmt), ##__VA_ARGS__])
+      IPALog([NSString stringWithFormat:(fmt), ##__VA_ARGS__])
 #else
   #define kif_trace_log(fmt, ...) do { (void)(fmt); } while (0)
 #endif
@@ -212,12 +212,12 @@ NSString *KFKifTextFromGameController(void *gameCtrl,
     @try {
         usiStrPtr = g_GetUSIText(gameCtrl);
     } @catch (NSException *e) {
-        file_log([NSString stringWithFormat:
+        IPALog([NSString stringWithFormat:
                   @"[KIF] GetUSIText threw: %@", e]);
         return nil;
     }
     if (!ptrLooksValid(usiStrPtr)) {
-        file_log(@"[KIF] GetUSIText returned null il2cpp string");
+        IPALog(@"[KIF] GetUSIText returned null il2cpp string");
         return nil;
     }
 
@@ -226,12 +226,12 @@ NSString *KFKifTextFromGameController(void *gameCtrl,
     @try {
         recordPtr = g_ParseUSI(usiStrPtr);
     } @catch (NSException *e) {
-        file_log([NSString stringWithFormat:
+        IPALog([NSString stringWithFormat:
                   @"[KIF] ParseUSI threw: %@", e]);
         return nil;
     }
     if (!ptrLooksValid(recordPtr)) {
-        file_log(@"[KIF] ParseUSI returned null RecordManager");
+        IPALog(@"[KIF] ParseUSI returned null RecordManager");
         return nil;
     }
 
@@ -252,7 +252,7 @@ NSString *KFKifTextFromGameController(void *gameCtrl,
     @try {
         g_KIFOpts_Ctor(opts);
     } @catch (NSException *e) {
-        file_log([NSString stringWithFormat:
+        IPALog([NSString stringWithFormat:
                   @"[KIF] KIFWriteOptions.ctor threw: %@", e]);
         return nil;
     }
@@ -267,12 +267,12 @@ NSString *KFKifTextFromGameController(void *gameCtrl,
     @try {
         kifStrPtr = g_KIFWriter_Write(recordPtr, opts);
     } @catch (NSException *e) {
-        file_log([NSString stringWithFormat:
+        IPALog([NSString stringWithFormat:
                   @"[KIF] KIFWriter.Write threw: %@", e]);
         return nil;
     }
     if (!ptrLooksValid(kifStrPtr)) {
-        file_log(@"[KIF] KIFWriter.Write returned null");
+        IPALog(@"[KIF] KIFWriter.Write returned null");
         return nil;
     }
 
@@ -457,7 +457,7 @@ void *KFIl2cppStringNew(const char *utf8) {
     dispatch_once(&once, ^{
         fn = (il2cpp_string_new_t)dlsym(RTLD_DEFAULT, "il2cpp_string_new");
         if (!fn) {
-            file_log(@"[KIF] dlsym(il2cpp_string_new) returned NULL — "
+            IPALog(@"[KIF] dlsym(il2cpp_string_new) returned NULL — "
                      @"string KIFWriteOptions fields will be left empty");
         }
     });
@@ -466,7 +466,7 @@ void *KFIl2cppStringNew(const char *utf8) {
     @try {
         result = fn(utf8);
     } @catch (NSException *e) {
-        file_log([NSString stringWithFormat:
+        IPALog([NSString stringWithFormat:
                   @"[KIF] il2cpp_string_new threw: %@", e]);
         return NULL;
     }
@@ -823,7 +823,7 @@ NSString *KFKifEnsureOutputDir(void) {
                              attributes:nil
                                   error:&err];
     if (!ok) {
-        file_log([NSString stringWithFormat:
+        IPALog([NSString stringWithFormat:
                   @"[KIF] mkdir failed at %@: %@", out, err]);
         return nil;
     }

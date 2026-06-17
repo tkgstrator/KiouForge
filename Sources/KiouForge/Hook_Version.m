@@ -7,7 +7,7 @@
 // sheet (Hook_SettingsUI.m) instead. No hooks are installed from this file.
 // ===========================================================================
 
-#ifndef IPA_BINPATCH
+#ifndef IPA_CHINLAN
 void KFInstallVersionHook(__unused uintptr_t unityBase) { }
 #else
 void KFPublishVersionSlots(__unused uintptr_t unityBase) { }

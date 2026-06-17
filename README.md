@@ -62,7 +62,7 @@ Default is **60** (retail value) so a fresh install changes nothing.
 
 Achieving >60 fps requires:
 1. A ProMotion device.
-2. The patched IPA build (the binpatch pipeline adds
+2. The patched IPA build (the Chinlan pipeline adds
    `CADisableMinimumFrameDurationOnPhone = true` to Info.plist automatically).
 
 ## Engine
@@ -178,7 +178,7 @@ App Store download is FairPlay-encrypted and cannot be patched directly.
 mkdir -p assets
 cp ~/Downloads/Kiou-1.0.1.ipa assets/
 make ipa
-# -> packages/ipa/KiouForge-binpatch.ipa
+# -> packages/ipa/KiouForge-patched.ipa
 ```
 
 Before building after editing hook sites or after a KIOU update:

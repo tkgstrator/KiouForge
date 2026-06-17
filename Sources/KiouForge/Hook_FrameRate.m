@@ -38,7 +38,7 @@ static void HookSetTargetFrameRate(int32_t value, void *mi) {
     int32_t v = KFFeatureEnabled(KIOU_FEATURE_FPS_OVERRIDE)
               ? KFTargetFPS() : value;
     if (v != value) {
-        file_log([NSString stringWithFormat:
+        IPALog([NSString stringWithFormat:
                   @"[FPS] set_targetFrameRate %d -> %d (override)", value, v]);
     }
     if (orig_set_targetFrameRate) orig_set_targetFrameRate(v, mi);
@@ -52,17 +52,17 @@ void KFApplyFPS(int32_t fps) {
     SetTargetFrameRate_t fn =
         (SetTargetFrameRate_t)(g_unityBaseForFPS + RVA_SET_TARGET_FRAMERATE);
     fn(fps, NULL);
-    file_log([NSString stringWithFormat:@"[FPS] applied %d fps (direct)", fps]);
+    IPALog([NSString stringWithFormat:@"[FPS] applied %d fps (direct)", fps]);
 }
 
-#ifndef IPA_BINPATCH
+#ifndef IPA_CHINLAN
 void KFInstallFrameRateHook(uintptr_t unityBase) {
     g_unityBaseForFPS = unityBase;
     uintptr_t addr = unityBase + RVA_SET_TARGET_FRAMERATE;
     MSHookFunction((void *)addr,
                    (void *)HookSetTargetFrameRate,
                    (void **)&orig_set_targetFrameRate);
-    file_log([NSString stringWithFormat:
+    IPALog([NSString stringWithFormat:
               @"Application.set_targetFrameRate hooked @0x%lx (base+0x%x) fps=%d",
               (unsigned long)addr, RVA_SET_TARGET_FRAMERATE, (int)KFTargetFPS()]);
 }
@@ -73,8 +73,8 @@ void KFPublishFrameRateSlots(uintptr_t unityBase) {
         (void *)HookSetTargetFrameRate;
     orig_set_targetFrameRate = (SetTargetFrameRate_t)
         KFResolveOrigTrampoline(unityBase, RVA_SET_TARGET_FRAMERATE);
-    file_log([NSString stringWithFormat:
-              @"[BINPATCH] set_targetFrameRate: slot[%d]=%p orig=%p fps=%d",
+    IPALog([NSString stringWithFormat:
+              @"[CHINLAN] set_targetFrameRate: slot[%d]=%p orig=%p fps=%d",
               KIOU_SLOT_SET_TARGET_FRAMERATE,
               g_kfHookSlot[KIOU_SLOT_SET_TARGET_FRAMERATE],
               (void *)orig_set_targetFrameRate,

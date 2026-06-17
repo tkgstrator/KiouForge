@@ -6,8 +6,8 @@
 // ---------------------------------------------------------------------------
 // Hook engine selection.
 // ---------------------------------------------------------------------------
-#if IPA_BINPATCH
-#import "binpatch_sites.h"
+#if IPA_CHINLAN
+#import "ChinlanSites.h"
 #else
 #import "hookengine.h"
 #endif
@@ -48,13 +48,13 @@ static inline void writeI32(void *base, uintptr_t off, int32_t val) {
 // Per-module hook installers.
 // ---------------------------------------------------------------------------
 
-#if IPA_BINPATCH
+#if IPA_CHINLAN
 void KFPublishFrameRateSlots(uintptr_t unityBase);
 void KFPublishAfkDisableSlots(uintptr_t unityBase);
 void KFPublishAnalysisTuneSlots(uintptr_t unityBase);
 void KFPublishKifuObserveSlots(uintptr_t unityBase);
-void KFBinpatchBootstrap(void);
-BOOL KFBinpatchPublished(void);
+void KFChinlanBootstrap(void);
+BOOL KFChinlanPublished(void);
 #else
 void KFInstallFrameRateHook(uintptr_t unityBase);
 void KFInstallAfkDisableHook(uintptr_t unityBase);

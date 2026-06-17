@@ -35,7 +35,7 @@ NSString *KFKifWriterEmit(void *gameCtrl,
                                               stateStore,
                                               matchModeTag);
     if (kif.length == 0) {
-        file_log([NSString stringWithFormat:
+        IPALog([NSString stringWithFormat:
                   @"[KIF] emit skipped: GetKifuText returned empty "
                   @"(gameCtrl=%p mode=%s)",
                   gameCtrl, matchModeTag ? matchModeTag : "unknown"]);
@@ -45,7 +45,7 @@ NSString *KFKifWriterEmit(void *gameCtrl,
     // 2. Make sure the output directory exists.
     NSString *outDir = KFKifEnsureOutputDir();
     if (!outDir) {
-        file_log(@"[KIF] emit failed: output dir unavailable");
+        IPALog(@"[KIF] emit failed: output dir unavailable");
         return nil;
     }
 
@@ -73,12 +73,12 @@ NSString *KFKifWriterEmit(void *gameCtrl,
                       encoding:NSUTF8StringEncoding
                          error:&err];
     if (!ok) {
-        file_log([NSString stringWithFormat:
+        IPALog([NSString stringWithFormat:
                   @"[KIF] write failed: path=%@ err=%@", path, err]);
         return nil;
     }
 
-    file_log([NSString stringWithFormat:
+    IPALog([NSString stringWithFormat:
               @"[KIF] wrote %lu bytes -> %@",
               (unsigned long)[kif lengthOfBytesUsingEncoding:NSUTF8StringEncoding],
               path]);
@@ -104,7 +104,7 @@ NSString *KFKifWriterEmit(void *gameCtrl,
 
 static void *kf_resolveGameController(void *self, uint32_t mode_index) {
     if (mode_index >= KIOU_MMODE_COUNT) {
-        file_log([NSString stringWithFormat:
+        IPALog([NSString stringWithFormat:
                   @"[KIFU] mode_index=%u out of range", mode_index]);
         return NULL;
     }
@@ -112,7 +112,7 @@ static void *kf_resolveGameController(void *self, uint32_t mode_index) {
     uintptr_t adapterOff = kKiouMatchModeAdapterOffsets[mode_index];
     void *adapter = readPtr(self, adapterOff);
     if (!adapter) {
-        file_log([NSString stringWithFormat:
+        IPALog([NSString stringWithFormat:
                   @"[KIFU] resolve: self=%p mode=%s adapterOff=0x%lx -> adapter=NULL",
                   self, kKiouMatchModeTags[mode_index],
                   (unsigned long)adapterOff]);
@@ -140,7 +140,7 @@ KFUniTaskRet KFKifuObserveMatchEnd(void *self, void *ct,
 
     void *gameCtrl = kf_resolveGameController(self, mode_index);
     if (!gameCtrl) {
-        file_log([NSString stringWithFormat:
+        IPALog([NSString stringWithFormat:
                   @"[KIFU] %s self=%p: GameController unresolved, skipping",
                   modeName, self]);
         return zero;
@@ -155,13 +155,13 @@ KFUniTaskRet KFKifuObserveMatchEnd(void *self, void *ct,
         stateStore  = readPtr(self, ONLINEPVPMODE_OFF_STATE_STORE);
     }
 
-    file_log([NSString stringWithFormat:
+    IPALog([NSString stringWithFormat:
               @"[KIFU] %s self=%p gameCtrl=%p matchConfig=%p stateStore=%p — emitting",
               modeName, self, gameCtrl, matchConfig, stateStore]);
 
     NSString *path = KFKifWriterEmit(gameCtrl, matchConfig, stateStore, modeName);
     if (path) {
-        file_log([NSString stringWithFormat:@"[KIFU] %s -> %@", modeName, path]);
+        IPALog([NSString stringWithFormat:@"[KIFU] %s -> %@", modeName, path]);
     }
     return zero;
 }

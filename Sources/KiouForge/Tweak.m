@@ -14,11 +14,11 @@
 //     the __DATA slot table.
 // ===========================================================================
 
-#if IPA_BINPATCH
+#if IPA_CHINLAN
 
 static void tryBootstrap(void) {
-    if (!KFBinpatchPublished()) KFBinpatchBootstrap();
-    if (!KFBinpatchPublished()) {
+    if (!KFChinlanPublished()) KFChinlanBootstrap();
+    if (!KFChinlanPublished()) {
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)),
                        dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
             tryBootstrap();
@@ -26,7 +26,7 @@ static void tryBootstrap(void) {
     }
 }
 
-#else  // !IPA_BINPATCH
+#else  // !IPA_CHINLAN
 
 static BOOL g_unityHooked = NO;
 
@@ -46,7 +46,7 @@ static void installUnityHooks(void) {
     }
     if (unityBase == 0) return;
 
-    file_log([NSString stringWithFormat:
+    IPALog([NSString stringWithFormat:
               @"UnityFramework base=0x%lx (%s)",
               (unsigned long)unityBase, unityName ? unityName : "?"]);
 
@@ -56,7 +56,7 @@ static void installUnityHooks(void) {
     KFInstallKifuObserveHook(unityBase);
 
     g_unityHooked = YES;
-    file_log(@"=== All KiouForge hooks installed ===");
+    IPALog(@"=== All KiouForge hooks installed ===");
 }
 
 static void retryInstallHooks(void) {
@@ -69,15 +69,15 @@ static void retryInstallHooks(void) {
     }
 }
 
-#endif  // IPA_BINPATCH
+#endif  // IPA_CHINLAN
 
 __attribute__((constructor)) static void init(void) {
-    logging_init("com.neconome.shogi.kiouforge");
-    file_log([NSString stringWithFormat:
+    IPALoggingInit("com.neconome.shogi.kiouforge");
+    IPALog([NSString stringWithFormat:
               @"=== KiouForge %s (%s) loaded ===",
               KIOU_FORGE_VERSION, KIOU_FORGE_COMMIT]);
 
-#if IPA_BINPATCH
+#if IPA_CHINLAN
     tryBootstrap();
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)),
                    dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
@@ -93,5 +93,5 @@ __attribute__((constructor)) static void init(void) {
 
     KFGestureInstall();
 
-    file_log(@"=== KiouForge constructor done ===");
+    IPALog(@"=== KiouForge constructor done ===");
 }

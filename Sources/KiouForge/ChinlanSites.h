@@ -3,10 +3,10 @@
 #include <stdint.h>
 
 // ===========================================================================
-// binpatch_sites.h — KiouForge binpatch slot table.
+// ChinlanSites.h — KiouForge Chinlan slot table.
 //
 // Single source of truth shared between:
-//   * Sources/KiouForge/BinpatchEntries.m
+//   * Sources/KiouForge/ChinlanEntries.m
 //   * recipes/kiouforge.py
 //
 // All RVAs are pinned to KIOU 1.0.1 build 11's UnityFramework. See
@@ -49,10 +49,10 @@ extern void **g_kfHookSlot;
 // ---------------------------------------------------------------------------
 // Cave payload size — must match recipes/kiouforge.py::CAVE_PAYLOAD_SIZE.
 // ---------------------------------------------------------------------------
-#define KIOU_BINPATCH_CAVE_PAYLOAD_SIZE  84
+#define KIOU_CHINLAN_CAVE_PAYLOAD_SIZE  84
 
 // ---------------------------------------------------------------------------
-// Orig-trampoline resolver (thin wrapper over ipa_binpatch_resolve_orig).
+// Orig-trampoline resolver (thin wrapper over IPAChinlanResolveOrig).
 // ---------------------------------------------------------------------------
 uintptr_t KFResolveOrigTrampoline(uintptr_t unityBase, uintptr_t siteRVA);
 
