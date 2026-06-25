@@ -8,12 +8,12 @@
 // Ported from KiouEngineBridge/ChinlanDispatcher.m.
 //
 // CAVE_OBSERVER caves all load a single slot at unityBase +
-// KIOU_KF_HOOK_SLOT_RVA and BLR it with W6 = hook_id. The slot points
+// KIOU_HOOK_OBSERVER_SLOT_RVA and BLR it with W6 = hook_id. The slot points
 // at dispatch_one, which switches on hook_id and forwards to the matching
 // Hook_*.m observer body.
 //
 // CAVE_ENTRY caves each load their own slot at unityBase +
-// KIOU_KF_ENTRY_SLOT_BASE_RVA + slot_index*8 and BLR it. KFChinlanPublish()
+// KIOU_HOOK_ENTRY_SLOT_BASE_RVA + slot_index*8 and BLR it. KFChinlanPublish()
 // writes the live hook function pointers into those slots.
 //
 // g_inject_entry[i] holds the per-site cave-bypass entry pointer so a
@@ -21,7 +21,7 @@
 // at unityBase+RVA is now `B <cave_va>` and would otherwise loop).
 // ===========================================================================
 
-void * volatile g_inject_entry[KIOU_KF_HOOK__COUNT] = {0};
+void * volatile g_inject_entry[KIOU_HOOK_ID__COUNT] = {0};
 
 // ---------------------------------------------------------------------------
 // Observer hook bodies — declared in their respective Hook_*.m files.
@@ -64,11 +64,11 @@ static void dispatch_one(void *x0, void *x1, void *x2, void *x3, void *x4,
     (void)x2; (void)x3; (void)x4; (void)x5; (void)x7;
     switch (hook_id) {
     // OnMatchEndAsync(self, ct)
-    case KIOU_KF_HOOK_KIFU_AI_END:        HookAiEnd(x0, x1); break;
-    case KIOU_KF_HOOK_KIFU_CPUSTREAM_END: HookCpuStreamEnd(x0, x1); break;
-    case KIOU_KF_HOOK_KIFU_LOCAL_END:     HookLocalEnd(x0, x1); break;
-    case KIOU_KF_HOOK_KIFU_ONLINE_END:    HookOnlineEnd(x0, x1); break;
-    case KIOU_KF_HOOK_KIFU_REPLAY_END:    HookReplayEnd(x0, x1); break;
+    case KIOU_HOOK_ID_KIFU_AI_END:        HookAiEnd(x0, x1); break;
+    case KIOU_HOOK_ID_KIFU_CPUSTREAM_END: HookCpuStreamEnd(x0, x1); break;
+    case KIOU_HOOK_ID_KIFU_LOCAL_END:     HookLocalEnd(x0, x1); break;
+    case KIOU_HOOK_ID_KIFU_ONLINE_END:    HookOnlineEnd(x0, x1); break;
+    case KIOU_HOOK_ID_KIFU_REPLAY_END:    HookReplayEnd(x0, x1); break;
     default:
         IPALog([NSString stringWithFormat:
                   @"[CHINLAN] unknown hook_id=%u self=%p",
@@ -79,15 +79,15 @@ static void dispatch_one(void *x0, void *x1, void *x2, void *x3, void *x4,
 
 // ---------------------------------------------------------------------------
 // Per-site cave-bypass entry. Each cave starts at
-//   unityBase + KIOU_KF_CAVE_REGION_START + slot_index*KIOU_KF_CAVE_SIZE
+//   unityBase + KIOU_HOOK_CAVE_REGION_START + slot_index*KIOU_HOOK_CAVE_SIZE
 // and the bypass entry (displaced prologue + B orig+4) lives at
-//   cave_va + KIOU_KF_CAVE_BYPASS_OFFSET.
+//   cave_va + KIOU_HOOK_CAVE_BYPASS_OFFSET.
 // ---------------------------------------------------------------------------
 static void *bypass_entry_for_hook(uintptr_t unityBase, uint32_t hook_id) {
     return (void *)(unityBase
-                    + KIOU_KF_CAVE_REGION_START
-                    + (uintptr_t)hook_id * KIOU_KF_CAVE_SIZE
-                    + KIOU_KF_CAVE_BYPASS_OFFSET);
+                    + KIOU_HOOK_CAVE_REGION_START
+                    + (uintptr_t)hook_id * KIOU_HOOK_CAVE_SIZE
+                    + KIOU_HOOK_CAVE_BYPASS_OFFSET);
 }
 
 // ---------------------------------------------------------------------------
@@ -102,41 +102,41 @@ void KFChinlanPublish(uintptr_t unityBase) {
 
     // Observer dispatcher slot.
     void * volatile *slot =
-        (void * volatile *)(unityBase + KIOU_KF_HOOK_SLOT_RVA);
+        (void * volatile *)(unityBase + KIOU_HOOK_OBSERVER_SLOT_RVA);
     *slot = (void *)&dispatch_one;
 
     // Per-hook cave-bypass entries.
-    for (uint32_t i = 0; i < KIOU_KF_HOOK__COUNT; i++) {
+    for (uint32_t i = 0; i < KIOU_HOOK_ID__COUNT; i++) {
         g_inject_entry[i] = bypass_entry_for_hook(unityBase, i);
     }
 
     // Entry-slot table — one slot per CAVE_ENTRY hook.
     void * volatile *entrySlots =
-        (void * volatile *)(unityBase + KIOU_KF_ENTRY_SLOT_BASE_RVA);
-    entrySlots[KIOU_KF_ENTRY_SLOT_SET_TARGET_FRAMERATE]      = (void *)&KFHookSetTargetFrameRateEntry;
-    entrySlots[KIOU_KF_ENTRY_SLOT_NSS_SETHASHSIZE]           = (void *)&KFHookNSSSetHashSizeEntry;
-    entrySlots[KIOU_KF_ENTRY_SLOT_NSS_SETSKILLEVEL]          = (void *)&KFHookNSSSetSkillLevelEntry;
-    entrySlots[KIOU_KF_ENTRY_SLOT_NSS_SEARCHFULL]            = (void *)&KFHookNSSSearchFullEntry;
-    entrySlots[KIOU_KF_ENTRY_SLOT_ACCOUNT_EXISTS]            = (void *)&KFHookAccountExists;
-    entrySlots[KIOU_KF_ENTRY_SLOT_LOGIN_ARGS_CREATE]         = (void *)&KFHookLoginArgsCreate;
-    entrySlots[KIOU_KF_ENTRY_SLOT_REGISTER_USER_ARGS_CREATE] = (void *)&KFHookRegisterUserArgsCreate;
-    entrySlots[KIOU_KF_ENTRY_SLOT_RUN_LOGIN_SEQ_MOVENEXT]    = (void *)&KFHookRunLoginSeqMoveNext;
-    entrySlots[KIOU_KF_ENTRY_SLOT_GET_SELF_PROFILE_MOVENEXT] = (void *)&KFHookGetSelfProfileMoveNext;
-    entrySlots[KIOU_KF_ENTRY_SLOT_HTTPMSGINVOKER_SEND_ASYNC] = (void *)&KFHookHttpMsgInvokerSendAsync;
+        (void * volatile *)(unityBase + KIOU_HOOK_ENTRY_SLOT_BASE_RVA);
+    entrySlots[KIOU_HOOK_SLOT_SET_TARGET_FRAMERATE]      = (void *)&KFHookSetTargetFrameRateEntry;
+    entrySlots[KIOU_HOOK_SLOT_NSS_SETHASHSIZE]           = (void *)&KFHookNSSSetHashSizeEntry;
+    entrySlots[KIOU_HOOK_SLOT_NSS_SETSKILLEVEL]          = (void *)&KFHookNSSSetSkillLevelEntry;
+    entrySlots[KIOU_HOOK_SLOT_NSS_SEARCHFULL]            = (void *)&KFHookNSSSearchFullEntry;
+    entrySlots[KIOU_HOOK_SLOT_ACCOUNT_EXISTS]            = (void *)&KFHookAccountExists;
+    entrySlots[KIOU_HOOK_SLOT_LOGIN_ARGS_CREATE]         = (void *)&KFHookLoginArgsCreate;
+    entrySlots[KIOU_HOOK_SLOT_REGISTER_USER_ARGS_CREATE] = (void *)&KFHookRegisterUserArgsCreate;
+    entrySlots[KIOU_HOOK_SLOT_RUN_LOGIN_SEQ_MOVENEXT]    = (void *)&KFHookRunLoginSeqMoveNext;
+    entrySlots[KIOU_HOOK_SLOT_GET_SELF_PROFILE_MOVENEXT] = (void *)&KFHookGetSelfProfileMoveNext;
+    entrySlots[KIOU_HOOK_SLOT_HTTPMSGINVOKER_SEND_ASYNC] = (void *)&KFHookHttpMsgInvokerSendAsync;
 
     IPALog([NSString stringWithFormat:
               @"[CHINLAN] dispatcher=%p observer slot=%p (unityBase+0x%lx) "
               @"entry slots base=%p (unityBase+0x%x) inject_entry[ai_end]=%p "
               @"cave_start=0x%lx cave_size=%u bypass_off=0x%x count=%u",
               (void *)&dispatch_one, (void *)slot,
-              (unsigned long)KIOU_KF_HOOK_SLOT_RVA,
+              (unsigned long)KIOU_HOOK_OBSERVER_SLOT_RVA,
               (void *)entrySlots,
-              (unsigned)KIOU_KF_ENTRY_SLOT_BASE_RVA,
-              (void *)g_inject_entry[KIOU_KF_HOOK_KIFU_AI_END],
-              (unsigned long)KIOU_KF_CAVE_REGION_START,
-              (unsigned)KIOU_KF_CAVE_SIZE,
-              (unsigned)KIOU_KF_CAVE_BYPASS_OFFSET,
-              (unsigned)KIOU_KF_HOOK__COUNT]);
+              (unsigned)KIOU_HOOK_ENTRY_SLOT_BASE_RVA,
+              (void *)g_inject_entry[KIOU_HOOK_ID_KIFU_AI_END],
+              (unsigned long)KIOU_HOOK_CAVE_REGION_START,
+              (unsigned)KIOU_HOOK_CAVE_SIZE,
+              (unsigned)KIOU_HOOK_CAVE_BYPASS_OFFSET,
+              (unsigned)KIOU_HOOK_ID__COUNT]);
 }
 
 #endif  // IPA_CHINLAN
