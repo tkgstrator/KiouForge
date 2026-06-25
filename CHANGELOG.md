@@ -4,6 +4,23 @@ All notable changes to KiouForge are documented here.
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-06-25
+
+### Added
+
+- **Account Switching** — KIOU has no official account switcher; this captures every login automatically and lets you swap saved accounts from the settings sheet without resetting the app. The **New Register** mode bypasses KIOU's Reset button to create a fresh account.
+- **KIOU 1.0.2 support** — `TARGET_VERSION` env var selects `v1_0_1` / `v1_0_2` (default 1.0.2). All 15 hook RVAs re-verified against the 1.0.2 Mach-O.
+
+### Changed
+
+- Restructured recipes into a version-aware layout: shared cave builders and slot indices in `recipes/common.py`, per-version RVAs in `recipes/v1_0_*.py`.
+- Bumped the chinlan hook slot count from 6 to 11 to accommodate the five account-switching hooks.
+- README / README.ja gained a feature × version compatibility matrix; supported targets are now 1.0.1–1.0.2.
+
+### Compatibility
+
+- KIOU 1.0.1 and 1.0.2. Account Switching requires 1.0.2.
+
 ## [0.1.0] — 2026-06-16
 
 Initial release.

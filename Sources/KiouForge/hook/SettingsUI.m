@@ -1,5 +1,6 @@
 #import "Internal.h"
 #import "Settings.h"
+#import "account/Persistence.h"
 #import <UIKit/UIKit.h>
 
 // ===========================================================================
@@ -16,9 +17,179 @@
 // the FPS stepper callback.
 extern void KFApplyFPS(int32_t fps);
 
-// Root settings view controller. Hosted inside a UINavigationController so
-// rows that drill into sub-screens (e.g. Kifu Autosave → per-mode toggles)
-// get push transitions for free.
+// ---------------------------------------------------------------------------
+// KFAccountsViewController — account list with select / delete / reorder.
+// ---------------------------------------------------------------------------
+@interface KFAccountsViewController : UITableViewController
+@property (nonatomic, strong) NSMutableArray<NSDictionary *> *accounts;
+@end
+
+@implementation KFAccountsViewController
+
+- (instancetype)init {
+    self = [super initWithStyle:UITableViewStyleInsetGrouped];
+    self.title = @"Accounts";
+    return self;
+}
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    UIBarButtonItem *share =
+        [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAction
+                                                      target:self
+                                                      action:@selector(exportAccounts:)];
+    self.navigationItem.rightBarButtonItems = @[self.editButtonItem, share];
+    self.accounts = [NSMutableArray arrayWithArray:KFListAccounts()];
+    [[NSNotificationCenter defaultCenter]
+        addObserver:self
+           selector:@selector(onAccountStateChanged:)
+               name:KFAccountStateChangedNotification
+             object:nil];
+}
+
+- (void)dealloc {
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+}
+
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+    self.accounts = [NSMutableArray arrayWithArray:KFListAccounts()];
+    [self.tableView reloadData];
+}
+
+- (void)onAccountStateChanged:(NSNotification *)note {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        self.accounts = [NSMutableArray arrayWithArray:KFListAccounts()];
+        [self.tableView reloadData];
+    });
+}
+
+- (void)exportAccounts:(UIBarButtonItem *)sender {
+    NSError *err = nil;
+    NSData *data = [NSJSONSerialization
+                       dataWithJSONObject:KFListAccounts()
+                                  options:NSJSONWritingPrettyPrinted | NSJSONWritingSortedKeys
+                                    error:&err];
+    if (data.length == 0) {
+        UIAlertController *alert = [UIAlertController
+            alertControllerWithTitle:@"Export failed"
+                              message:err.localizedDescription ?: @"(unknown)"
+                       preferredStyle:UIAlertControllerStyleAlert];
+        [alert addAction:[UIAlertAction actionWithTitle:@"OK"
+                                                  style:UIAlertActionStyleDefault
+                                                handler:nil]];
+        [self presentViewController:alert animated:YES completion:nil];
+        return;
+    }
+    NSURL *tmpURL = [NSURL fileURLWithPath:
+        [NSTemporaryDirectory() stringByAppendingPathComponent:@"kf_accounts.json"]];
+    [data writeToURL:tmpURL atomically:YES];
+    UIActivityViewController *vc =
+        [[UIActivityViewController alloc] initWithActivityItems:@[tmpURL]
+                                          applicationActivities:nil];
+    vc.popoverPresentationController.barButtonItem = sender;
+    [self presentViewController:vc animated:YES completion:nil];
+}
+
+- (NSInteger)tableView:(UITableView *)tv numberOfRowsInSection:(NSInteger)section {
+    return self.accounts.count;
+}
+
+- (NSString *)tableView:(UITableView *)tv titleForFooterInSection:(NSInteger)section {
+    if (self.accounts.count == 0)
+        return @"No accounts saved yet. Log in once and KiouForge will remember the identity.";
+    return @"Tap to switch. App relaunch required.";
+}
+
+- (UITableViewCell *)tableView:(UITableView *)tv
+         cellForRowAtIndexPath:(NSIndexPath *)ip {
+    static NSString *kId = @"kf_account_row";
+    UITableViewCell *cell = [tv dequeueReusableCellWithIdentifier:kId];
+    if (!cell) {
+        cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle
+                                      reuseIdentifier:kId];
+        cell.detailTextLabel.textColor = UIColor.secondaryLabelColor;
+        cell.showsReorderControl = YES;
+    }
+    NSDictionary *acc = self.accounts[ip.row];
+    NSString *userName = acc[@"userName"];
+    NSString *openId   = acc[@"openId"];
+    NSString *userId   = acc[@"userId"];
+    cell.textLabel.text       = userName.length > 0 ? userName : @"(no name)";
+    cell.detailTextLabel.text = openId.length  > 0 ? openId  : @"(no open id)";
+    NSString *activeUserId = KFActiveAccountUserId();
+    cell.accessoryType = ([userId isKindOfClass:[NSString class]] &&
+                          [userId isEqualToString:activeUserId])
+        ? UITableViewCellAccessoryCheckmark
+        : UITableViewCellAccessoryNone;
+    return cell;
+}
+
+- (void)tableView:(UITableView *)tv didSelectRowAtIndexPath:(NSIndexPath *)ip {
+    [tv deselectRowAtIndexPath:ip animated:YES];
+    if (self.tableView.isEditing) return;
+    if (ip.row >= (NSInteger)self.accounts.count) return;
+    NSDictionary *acc = self.accounts[ip.row];
+    NSString *userId   = acc[@"userId"];
+    NSString *uuid     = acc[@"uuid"];
+    NSString *userName = acc[@"userName"];
+    if (![userId isKindOfClass:[NSString class]] || userId.length == 0) return;
+    NSString *title = [NSString stringWithFormat:@"%@に切り替え",
+                       userName.length > 0 ? userName : @"このアカウント"];
+    UIAlertController *alert = [UIAlertController
+        alertControllerWithTitle:title
+                          message:nil
+                   preferredStyle:UIAlertControllerStyleAlert];
+    [alert addAction:[UIAlertAction actionWithTitle:@"キャンセル"
+                                              style:UIAlertActionStyleCancel
+                                            handler:nil]];
+    [alert addAction:[UIAlertAction actionWithTitle:@"切り替え"
+                                              style:UIAlertActionStyleDefault
+                                            handler:^(UIAlertAction *_) {
+        if (uuid.length > 0) KFSwitchAccount(uuid);
+        KFSetActiveAccountUserId(userId);
+        // Close the settings modal then let KIOU navigate itself back to the
+        // title scene — that re-runs AccountExists → LoginAsync with the
+        // pending_device_id substitution in effect, no app relaunch needed.
+        UIViewController *modalRoot = self.navigationController ?: self;
+        UIViewController *presenter = modalRoot.presentingViewController;
+        [presenter dismissViewControllerAnimated:YES completion:^{
+            KFNavigateToTitleScene();
+        }];
+    }]];
+    [self presentViewController:alert animated:YES completion:nil];
+}
+
+- (BOOL)tableView:(UITableView *)tv canEditRowAtIndexPath:(NSIndexPath *)ip { return YES; }
+- (BOOL)tableView:(UITableView *)tv canMoveRowAtIndexPath:(NSIndexPath *)ip { return YES; }
+
+- (void)tableView:(UITableView *)tv
+    commitEditingStyle:(UITableViewCellEditingStyle)style
+     forRowAtIndexPath:(NSIndexPath *)ip {
+    if (style != UITableViewCellEditingStyleDelete) return;
+    if (ip.row >= (NSInteger)self.accounts.count) return;
+    NSString *userId = self.accounts[ip.row][@"userId"];
+    [self.accounts removeObjectAtIndex:ip.row];
+    if ([userId isKindOfClass:[NSString class]]) KFDeleteAccount(userId);
+    [tv deleteRowsAtIndexPaths:@[ip] withRowAnimation:UITableViewRowAnimationAutomatic];
+}
+
+- (void)tableView:(UITableView *)tv
+    moveRowAtIndexPath:(NSIndexPath *)src
+           toIndexPath:(NSIndexPath *)dst {
+    if (src.row >= (NSInteger)self.accounts.count) return;
+    NSDictionary *moved = self.accounts[src.row];
+    [self.accounts removeObjectAtIndex:src.row];
+    [self.accounts insertObject:moved atIndex:dst.row];
+    [[NSUserDefaults standardUserDefaults] setObject:self.accounts
+                                              forKey:@"kiou_forge.account.accounts"];
+}
+
+@end
+
+// ---------------------------------------------------------------------------
+// Root settings view controller.
+// ---------------------------------------------------------------------------
 @interface KFSettingsViewController : UITableViewController
 @property (nonatomic, strong) UILabel *fpsValueLabel;
 @property (nonatomic, strong) UILabel *depthValueLabel;
@@ -34,11 +205,16 @@ extern void KFApplyFPS(int32_t fps);
 static const int32_t kFpsPresets[]  = { 15, 24, 30, 45, 60, 90, 120 };
 static const int32_t kHashPresets[] = { 16, 64, 128, 256, 512, 1024 };
 
-#define KF_SECTION_FEATURES    0
-#define KF_SECTION_PERFORMANCE 1
-#define KF_SECTION_ENGINE      2
-#define KF_SECTION_ABOUT       3
-#define KF_SECTION_COUNT       4
+#define KF_SECTION_ACCOUNT     0
+#define KF_SECTION_FEATURES    1
+#define KF_SECTION_PERFORMANCE 2
+#define KF_SECTION_ENGINE      3
+#define KF_SECTION_ABOUT       4
+#define KF_SECTION_COUNT       5
+
+#define KF_ACCOUNT_ROW_ACTIVE         0
+#define KF_ACCOUNT_ROW_FORCE_REGISTER 1
+#define KF_ACCOUNT_ROW_COUNT          2
 
 #define KF_PERF_ROW_FPS     0
 #define KF_PERF_ROW_COUNT   1
@@ -70,6 +246,24 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
         initWithBarButtonSystemItem:UIBarButtonSystemItemDone
                              target:self
                              action:@selector(onClose:)];
+    [[NSNotificationCenter defaultCenter]
+        addObserver:self
+           selector:@selector(onAccountStateChanged:)
+               name:KFAccountStateChangedNotification
+             object:nil];
+}
+
+- (void)dealloc {
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+}
+
+- (void)onAccountStateChanged:(NSNotification *)note {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (self.isViewLoaded && self.view.window) {
+            [self.tableView reloadSections:[NSIndexSet indexSetWithIndex:KF_SECTION_ACCOUNT]
+                          withRowAnimation:UITableViewRowAnimationNone];
+        }
+    });
 }
 
 - (void)viewWillAppear:(BOOL)animated {
@@ -90,6 +284,7 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
 
 - (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section {
     switch (section) {
+        case KF_SECTION_ACCOUNT:     return @"Account";
         case KF_SECTION_FEATURES:    return @"Features";
         case KF_SECTION_PERFORMANCE: return @"Performance";
         case KF_SECTION_ENGINE:      return @"Engine";
@@ -99,6 +294,11 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
 }
 
 - (NSString *)tableView:(UITableView *)tableView titleForFooterInSection:(NSInteger)section {
+    if (section == KF_SECTION_ACCOUNT) {
+        return @"New Register: routes the next launch into the name-entry "
+               @"flow to create a fresh account without going through KIOU's "
+               @"Reset button.";
+    }
     if (section == KF_SECTION_FEATURES) {
         return @"AFK Guard suppresses the \"no input\" warning during long-think "
                @"sessions. Analysis Tune strengthens the on-device engine "
@@ -125,6 +325,7 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
     switch (section) {
+        case KF_SECTION_ACCOUNT:     return KF_ACCOUNT_ROW_COUNT;
         case KF_SECTION_FEATURES:    return KIOU_FEATURE_COUNT;
         case KF_SECTION_PERFORMANCE: return KF_PERF_ROW_COUNT;
         case KF_SECTION_ENGINE:      return KF_ENGINE_ROW_COUNT;
@@ -135,6 +336,48 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
 
 - (UITableViewCell *)tableView:(UITableView *)tableView
          cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    if (indexPath.section == KF_SECTION_ACCOUNT) {
+        if (indexPath.row == KF_ACCOUNT_ROW_ACTIVE) {
+            static NSString *kId = @"kf_account_active";
+            UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:kId];
+            if (!cell) {
+                cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleValue1
+                                              reuseIdentifier:kId];
+                cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
+                cell.detailTextLabel.textColor = UIColor.secondaryLabelColor;
+            }
+            cell.textLabel.text = @"Active";
+            NSString *activeUserId = KFActiveAccountUserId();
+            NSString *activeName = nil;
+            for (NSDictionary *acc in KFListAccounts()) {
+                NSString *u = acc[@"userId"];
+                if ([u isKindOfClass:[NSString class]] && [u isEqualToString:activeUserId]) {
+                    NSString *n = acc[@"userName"];
+                    if ([n isKindOfClass:[NSString class]]) activeName = n;
+                    break;
+                }
+            }
+            cell.detailTextLabel.text =
+                activeName.length > 0 ? activeName : @"(not logged in)";
+            return cell;
+        }
+        // KF_ACCOUNT_ROW_FORCE_REGISTER
+        static NSString *kId2 = @"kf_force_register";
+        UITableViewCell *cell2 = [tableView dequeueReusableCellWithIdentifier:kId2];
+        if (!cell2) {
+            cell2 = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault
+                                           reuseIdentifier:kId2];
+            cell2.selectionStyle = UITableViewCellSelectionStyleNone;
+            UISwitch *sw = [[UISwitch alloc] init];
+            [sw addTarget:self action:@selector(onForceRegisterChanged:)
+         forControlEvents:UIControlEventValueChanged];
+            cell2.accessoryView = sw;
+        }
+        cell2.textLabel.text = @"New Register";
+        ((UISwitch *)cell2.accessoryView).on = KFForceRegisterOnNextLaunch();
+        return cell2;
+    }
+
     if (indexPath.section == KF_SECTION_FEATURES) {
         KiouFeature f = (KiouFeature)indexPath.row;
         // Two row shapes:
@@ -294,6 +537,13 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
 
+    if (indexPath.section == KF_SECTION_ACCOUNT &&
+        indexPath.row == KF_ACCOUNT_ROW_ACTIVE) {
+        KFAccountsViewController *vc = [[KFAccountsViewController alloc] init];
+        [self.navigationController pushViewController:vc animated:YES];
+        return;
+    }
+
     if (indexPath.section == KF_SECTION_FEATURES) {
         KiouFeature f = (KiouFeature)indexPath.row;
         if (!KFFeatureHasNavigation(f)) return;
@@ -313,6 +563,20 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
 // ---------------------------------------------------------------------------
 // Control handlers
 // ---------------------------------------------------------------------------
+
+- (void)onForceRegisterChanged:(UISwitch *)sw {
+    KFSetForceRegisterOnNextLaunch(sw.on);
+    if (sw.on) {
+        NSString *fresh = [[NSUUID UUID] UUIDString].lowercaseString;
+        KFSetPendingDistinctId(fresh);
+        KFSetPendingDeviceId(fresh);
+    } else {
+        KFSetPendingDistinctId(nil);
+        KFSetPendingDeviceId(nil);
+    }
+    IPALog([NSString stringWithFormat:@"[SETTINGS] force_register=%s",
+              sw.on ? "true" : "false"]);
+}
 
 - (void)onFeatureToggle:(UISwitch *)sw {
     KiouFeature f = (KiouFeature)sw.tag;

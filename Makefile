@@ -19,8 +19,10 @@ TWEAK_SOURCES_DIR        := Sources/$(TWEAK_NAME)
 TARGET_PROCESS           := KIOU
 TARGET_BUNDLE_ID         := com.neconome.shogi
 
-DECRYPTED_IPA            ?= $(CURDIR)/assets/Kiou-1.0.1.ipa
-IPA_RECIPE               := recipes.kiouforge
+# Override on the command line: make ipa TARGET_VERSION=1.0.2
+TARGET_VERSION           ?= 1.0.2
+DECRYPTED_IPA            ?= $(CURDIR)/assets/$(TARGET_VERSION)/Kiou-$(TARGET_VERSION).ipa
+IPA_RECIPE               := recipes.__init__
 IPA_FRAMEWORK            := UnityFramework
 
 BUILD_COMMIT_DEFINE      := KIOU_FORGE_COMMIT
@@ -28,16 +30,19 @@ BUILD_COMMIT_DEFINE      := KIOU_FORGE_COMMIT
 # ---------------------------------------------------------------------------
 # Theos boilerplate.
 # ---------------------------------------------------------------------------
-TARGET                   := iphone:clang:latest:13.0
+TARGET                   := iphone:clang:16.5:15.0
 INSTALL_TARGET_PROCESSES := $(TARGET_PROCESS)
 ARCHS                    := arm64
 THEOS_PACKAGE_SCHEME     := rootless
-THEOS_DEVICE_IP          := 192.168.0.49
+-include .env
+THEOS_DEVICE_IP          ?= 192.168.0.49
 
 include $(THEOS)/makefiles/common.mk
 
-$(TWEAK_NAME)_FILES      := $(shell find $(TWEAK_SOURCES_DIR) -name '*.m' -o -name '*.c' -o -name '*.mm' -o -name '*.cpp')
+$(TWEAK_NAME)_FILES      := $(shell find $(TWEAK_SOURCES_DIR) \
+    \( -name '*.m' -o -name '*.c' -o -name '*.mm' -o -name '*.cpp' \))
 $(TWEAK_NAME)_FILES      += Sources/Chinlan/logging.m
+$(TWEAK_NAME)_FILES      += Sources/Chinlan/logserver.m
 $(TWEAK_NAME)_FILES      += Sources/Chinlan/chinlan.m
 
 BUILD_COMMIT             ?= $(shell git rev-parse --short=7 HEAD 2>/dev/null || echo unknown)
@@ -45,19 +50,20 @@ BUILD_COMMIT             ?= $(shell git rev-parse --short=7 HEAD 2>/dev/null || 
 _CONTROL_VERSION         := $(shell grep '^Version:' control | awk '{print $$2}')
 # Theos sets DEBUG=1 by default; FINALPACKAGE=1 clears it for release builds.
 ifneq ($(FINALPACKAGE),1)
-KIOU_FORGE_VERSION       ?= $(_CONTROL_VERSION)-dbg
+PACKAGE_VERSION          ?= $(_CONTROL_VERSION)-dbg
 else
-KIOU_FORGE_VERSION       ?= $(_CONTROL_VERSION)
+PACKAGE_VERSION          ?= $(_CONTROL_VERSION)
 endif
-
-KIOU_FORGE_DEB_VERSION   := $(patsubst v%,%,$(KIOU_FORGE_VERSION))
-KIOU_FORGE_DEB_VERSION   := $(shell echo "$(KIOU_FORGE_DEB_VERSION)" | sed -E 's/^([^0-9])/0.0.0+\1/')
-THEOS_PACKAGE_BASE_VERSION := $(KIOU_FORGE_DEB_VERSION)
 
 $(TWEAK_NAME)_CFLAGS     := -fobjc-arc -Wno-unused-function \
                             -D$(BUILD_COMMIT_DEFINE)=\"$(BUILD_COMMIT)\" \
-                            -DKIOU_FORGE_VERSION=\"$(KIOU_FORGE_VERSION)\" \
+                            -DKIOU_FORGE_VERSION=\"$(PACKAGE_VERSION)\" \
                             -ISources/Chinlan -I$(TWEAK_SOURCES_DIR)
+ifdef FINAL_RELEASE
+$(TWEAK_NAME)_CFLAGS     += -DFINAL_RELEASE=1
+endif
+
+$(TWEAK_NAME)_FILES      +=
 $(TWEAK_NAME)_FRAMEWORKS := Foundation UIKit
 
 ifeq ($(CHINLAN),1)
@@ -68,6 +74,9 @@ endif
 ifeq ($(JAILED),1)
     $(TWEAK_NAME)_CFLAGS     += -DIPA_JAILED=1 -Ivendor/dobby/include
     $(TWEAK_NAME)_LDFLAGS    := -Lvendor/dobby/lib -ldobby -lc++ -lc++abi
+ifeq ($(CHINLAN),1)
+    $(TWEAK_NAME)_LDFLAGS    += -Wl,-undefined,error
+endif
 else
     $(TWEAK_NAME)_LDFLAGS    := -lsubstrate
 endif
@@ -101,16 +110,18 @@ chinlan::
 IPA_DYLIB                := $(CURDIR)/packages/chinlan/$(TWEAK_NAME).dylib
 
 ipa:: chinlan
-	@echo "==> assembling patched IPA from $(DECRYPTED_IPA)"
+	@echo "==> assembling patched IPA from $(DECRYPTED_IPA) (v$(TARGET_VERSION))"
 	@if [ ! -f "$(DECRYPTED_IPA)" ]; then \
 	  echo "error: decrypted IPA missing at $(DECRYPTED_IPA)"; \
+	  echo "       override with: make ipa TARGET_VERSION=<ver>"; \
 	  exit 1; \
 	fi
-	@./shared/tools/build_patched_ipa.sh \
+	@TARGET_VERSION="$(TARGET_VERSION)" ./shared/tools/build_patched_ipa.sh \
 	  --recipe    "$(IPA_RECIPE)" \
 	  --framework "$(IPA_FRAMEWORK)" \
 	  --dylib     "$(IPA_DYLIB)" \
-	  --input     "$(DECRYPTED_IPA)"
+	  --input     "$(DECRYPTED_IPA)" \
+	  --output    "$(CURDIR)/packages/ipa/$(basename $(notdir $(DECRYPTED_IPA)))-patched.ipa"
 
 .PHONY: hooks
 hooks::
