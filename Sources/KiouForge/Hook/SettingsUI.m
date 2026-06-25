@@ -1,6 +1,6 @@
 #import "Internal.h"
 #import "Settings.h"
-#import "account/Persistence.h"
+#import "Account/Persistence.h"
 #import <UIKit/UIKit.h>
 
 // ===========================================================================
