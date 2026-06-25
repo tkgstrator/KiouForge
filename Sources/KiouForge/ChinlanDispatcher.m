@@ -35,20 +35,21 @@ extern void HookOnlineEnd(void *self, void *ct);
 extern void HookReplayEnd(void *self, void *ct);
 
 // ---------------------------------------------------------------------------
-// Entry hook bodies — declared in their respective Hook_*.m files.
-// CAVE_ENTRY hooks replace orig; they call bypass through g_inject_entry[]
-// to run the original method when needed.
+// Entry hook bodies — declared in their respective Hook_*.m files (the
+// KIOU-Hook ones live under vendor/KIOU-Hook/Hook/). CAVE_ENTRY hooks
+// replace orig; the body calls the cave bypass (resolved by KIOUHookOrig)
+// to invoke the original method when needed.
 // ---------------------------------------------------------------------------
 extern void  KFHookSetTargetFrameRateEntry(int32_t value, void *mi);
 extern void  KFHookNSSSetHashSizeEntry(void *self, int32_t mb, void *mi);
 extern void  KFHookNSSSetSkillLevelEntry(void *self, int32_t level, void *mi);
 extern void *KFHookNSSSearchFullEntry(void *self, void *sfen, int32_t depth, void *mi);
-extern bool  KFHookAccountExistsEntry(void *data);
-extern void *KFHookLoginArgsCreateEntry(void *deviceId, void *distinctId);
-extern void *KFHookRegisterUserArgsCreateEntry(void *userName, void *distinctId);
-extern void  KFHookRunLoginSeqMoveNextEntry(void *self);
-extern void  KFHookGetSelfProfileMoveNextEntry(void *self);
-extern void *KFHookHttpMsgInvokerSendAsyncEntry(void *self, void *request, void *ct);
+extern bool  KFHookAccountExists(void *data);
+extern void *KFHookLoginArgsCreate(void *deviceId, void *distinctId);
+extern void *KFHookRegisterUserArgsCreate(void *userName, void *distinctId);
+extern void  KFHookRunLoginSeqMoveNext(void *self);
+extern void  KFHookGetSelfProfileMoveNext(void *self);
+extern void *KFHookHttpMsgInvokerSendAsync(void *self, void *request, void *ct);
 
 // ---------------------------------------------------------------------------
 // dispatch_one — single shared observer slot, switches on W6=hook_id.
@@ -116,12 +117,12 @@ void KFChinlanPublish(uintptr_t unityBase) {
     entrySlots[KIOU_KF_ENTRY_SLOT_NSS_SETHASHSIZE]           = (void *)&KFHookNSSSetHashSizeEntry;
     entrySlots[KIOU_KF_ENTRY_SLOT_NSS_SETSKILLEVEL]          = (void *)&KFHookNSSSetSkillLevelEntry;
     entrySlots[KIOU_KF_ENTRY_SLOT_NSS_SEARCHFULL]            = (void *)&KFHookNSSSearchFullEntry;
-    entrySlots[KIOU_KF_ENTRY_SLOT_ACCOUNT_EXISTS]            = (void *)&KFHookAccountExistsEntry;
-    entrySlots[KIOU_KF_ENTRY_SLOT_LOGIN_ARGS_CREATE]         = (void *)&KFHookLoginArgsCreateEntry;
-    entrySlots[KIOU_KF_ENTRY_SLOT_REGISTER_USER_ARGS_CREATE] = (void *)&KFHookRegisterUserArgsCreateEntry;
-    entrySlots[KIOU_KF_ENTRY_SLOT_RUN_LOGIN_SEQ_MOVENEXT]    = (void *)&KFHookRunLoginSeqMoveNextEntry;
-    entrySlots[KIOU_KF_ENTRY_SLOT_GET_SELF_PROFILE_MOVENEXT] = (void *)&KFHookGetSelfProfileMoveNextEntry;
-    entrySlots[KIOU_KF_ENTRY_SLOT_HTTPMSGINVOKER_SEND_ASYNC] = (void *)&KFHookHttpMsgInvokerSendAsyncEntry;
+    entrySlots[KIOU_KF_ENTRY_SLOT_ACCOUNT_EXISTS]            = (void *)&KFHookAccountExists;
+    entrySlots[KIOU_KF_ENTRY_SLOT_LOGIN_ARGS_CREATE]         = (void *)&KFHookLoginArgsCreate;
+    entrySlots[KIOU_KF_ENTRY_SLOT_REGISTER_USER_ARGS_CREATE] = (void *)&KFHookRegisterUserArgsCreate;
+    entrySlots[KIOU_KF_ENTRY_SLOT_RUN_LOGIN_SEQ_MOVENEXT]    = (void *)&KFHookRunLoginSeqMoveNext;
+    entrySlots[KIOU_KF_ENTRY_SLOT_GET_SELF_PROFILE_MOVENEXT] = (void *)&KFHookGetSelfProfileMoveNext;
+    entrySlots[KIOU_KF_ENTRY_SLOT_HTTPMSGINVOKER_SEND_ASYNC] = (void *)&KFHookHttpMsgInvokerSendAsync;
 
     IPALog([NSString stringWithFormat:
               @"[CHINLAN] dispatcher=%p observer slot=%p (unityBase+0x%lx) "

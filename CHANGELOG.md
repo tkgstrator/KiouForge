@@ -4,6 +4,10 @@ All notable changes to KiouForge are documented here.
 
 ## [Unreleased]
 
+### Changed
+
+- Extracted the shared KIOU binary catalog (RVAs, hook-id enum, cave geometry) and the account/gRPC hook implementations into a new private submodule `IPA-Patch/KIOU-Hook`, mounted at `vendor/KIOU-Hook/`. KiouForge cherry-picks the `.m` files it compiles in via the Makefile and uses the new name-based hook API (`KIOUHookOrig` / `KIOUHookInstall` / `KIOUHookSiteAddr`) so shared hook bodies never reference RVAs or slot enums directly. Behavior unchanged.
+
 ## [0.2.0] — 2026-06-25
 
 ### Added
