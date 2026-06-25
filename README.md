@@ -11,8 +11,8 @@
 </p>
 
 <p align="center">
-  <img alt="version" src="https://img.shields.io/badge/version-v0.1.0-2f80ed?style=flat-square" />
-  <img alt="targets KIOU" src="https://img.shields.io/badge/targets-KIOU%201.0.1%20(11)-ff66a3?style=flat-square" />
+  <img alt="version" src="https://img.shields.io/badge/version-v0.2.0-2f80ed?style=flat-square" />
+  <img alt="targets KIOU" src="https://img.shields.io/badge/targets-KIOU%201.0.1%E2%80%931.0.2-ff66a3?style=flat-square" />
   <img alt="platform" src="https://img.shields.io/badge/platform-iOS%2013.0%2B-blue?style=flat-square" />
   <img alt="arch" src="https://img.shields.io/badge/arch-arm64%20rootless-555?style=flat-square" />
   <img alt="runs" src="https://img.shields.io/badge/runs-client--side%20only-1f9d55?style=flat-square" />
@@ -46,6 +46,7 @@ runs on-device and never touches the server or affects live match play.
 | **AFK Guard** | Suppresses the "no input detected" warning and the automatic surrender that follows. The retail timer fires after ~60 s of no input. Useful during long-think or analysis sessions. |
 | **Analysis Tune** | Raises the depth, hash, and skill parameters the on-device Rshogi NNUE engine uses **for post-game kifu analysis only**. Has no effect during live matches. |
 | **Kifu Autosave** | Automatically exports a `.kif` file to `Documents/KiouForge/` when any match ends. Filename includes timestamp, mode, player names (Unicode — Japanese names preserved as-is), and starting position. Per-mode toggles (AI, CPU Stream, Local PvP, Online PvP, Record/Replay) are available in the sub-screen; all modes default to on. |
+| **Account Switching** | Save and switch between multiple KIOU accounts without resetting the app. Accounts are captured automatically on login. Tap **Account → Active** in the settings sheet to view the list, tap a row to switch (app navigates to the title screen automatically). **New Register** creates a fresh account without going through KIOU's Reset button. |
 
 ## Performance
 
@@ -124,19 +125,81 @@ Right-edge swipe → settings sheet with four sections:
 
 All values persist between launches.
 
+## Account Switching
+
+KIOU itself has **no official account linking** — once you uninstall the app
+or wipe the device, the deviceId is gone and your account is unrecoverable.
+KiouForge fills that gap by recording every account that passes through
+`LoginAsync` and persisting the identifiers to `NSUserDefaults`. The saved
+list survives app updates, and since you can export it, your accounts
+survive **device transfers** too.
+
+**How it works:**
+
+1. On first launch after install, the currently-logged-in account is captured
+   from `UserSaveDataExtensions.AccountExists`.
+2. On every successful login, `RunLoginSequenceAsync.MoveNext` records the
+   `LoginReply` (deviceId, userName, userId from `JWT.sub`).
+3. From the settings sheet → **Account → Active** you can see all saved
+   accounts and tap one to switch. KiouForge arms a `pending_device_id`
+   substitution; the next `LoginArgs.Create` call silently swaps the
+   `deviceId` argument so the server returns the chosen account's session.
+4. **New Register** arms a fresh UUID and routes the next launch into the
+   name-entry flow — creating a new account without touching KIOU's own
+   Reset button (which can trigger server-side rebinding of the existing
+   account's UUID).
+
+`distinctId` (TDAnalytics keychain UUID) is intentionally **not** touched
+during a switch — overriding it causes a `-40004` auth failure.
+
+### Export / import
+
+The accounts screen has a **share button** (top right) that writes
+`kf_accounts.json` to a temp file and opens the system share sheet. The
+JSON is plain — each entry has `uuid`, `userName`, `openId`, `userId`,
+`distinctId`, `savedAt`, and an optional `ranks` array.
+
+Use cases:
+
+- **Backup** — save the JSON to Files / iCloud / your Mac before reinstalling.
+- **Device transfer** — export from the old device, then on the new device
+  drop the JSON into `Library/Preferences/<bundle>.plist` (under the
+  `kiou_forge.account.accounts` key) and your saved accounts move with you.
+- **Recovery** — even if KIOU itself loses the deviceId, the UUID stored in
+  your exported JSON can be replayed via the **Active** account list to log
+  back into the original account.
+
+This is the closest thing to "account linking" KIOU has — and it's entirely
+client-side.
 
 ## Compatibility
 
+KIOU is an online game — it updates frequently and old versions stop working
+server-side. The recommended target is always the **latest supported version**.
+
+### Feature × version matrix
+
+| Feature | 1.0.1 (build 11) | 1.0.2 (build 12) |
+|---|:---:|:---:|
+| FPS Override | ✓ | ✓ |
+| AFK Guard | ✓ | ✓ |
+| Analysis Tune | ✓ | ✓ |
+| Kifu Autosave | ✓ | ✓ |
+| **Account Switching** | — | ✓ |
+
+Account Switching requires hook sites introduced in 1.0.2; the Jailed/JB build
+always targets the **latest** version only (RVAs are pinned at compile time).
+The Patched IPA build selects the recipe at build time via `TARGET_VERSION`.
+
+### Platform
+
 | | |
 |---|---|
-| **KIOU app version** | `1.0.1` (`CFBundleVersion` 11) |
+| **Latest supported KIOU** | `1.0.2` (CFBundleVersion 12) |
 | **KIOU minimum iOS** | 10.0 (`MinimumOSVersion` in app bundle) |
 | **KiouForge minimum iOS** | 13.0 (requires `UIWindowScene`) |
-| **Tested on** | 15.0 – 26, arm64 |
-| **Distribution** | Jailbroken `.deb`, TrollStore-injected jailed `.dylib`, Patched IPA (Sideloadly / AltStore) |
-
-All hook sites are RVA-pinned to this exact KIOU build. After a KIOU update
-the RVAs will drift.
+| **Tested on** | iOS 15.0 – 26, arm64 |
+| **Distribution** | Jailbroken `.deb`, TrollStore jailed `.dylib`, Patched IPA (Sideloadly / AltStore) |
 
 ## Build
 
@@ -175,18 +238,23 @@ Filza, or [TrollDecrypt](https://github.com/donato-fiore/TrollDecrypt)). The
 App Store download is FairPlay-encrypted and cannot be patched directly.
 
 ```sh
-mkdir -p assets
-cp ~/Downloads/Kiou-1.0.1.ipa assets/
+# default (1.0.2)
+mkdir -p assets/1.0.2
+cp ~/Downloads/Kiou-1.0.2.ipa assets/1.0.2/
 make ipa
 # -> packages/ipa/KiouForge-patched.ipa
+
+# target a specific version
+make ipa TARGET_VERSION=1.0.1
 ```
 
 Before building after editing hook sites or after a KIOU update:
 
 ```sh
-PYTHONPATH=shared:. python3 -m tools.verify_sites \
-  --recipe recipes.kiouforge \
-  --index  assets/dump.cs.index.json \
-  --ipa    assets/Kiou-1.0.1.ipa
+# verify current recipe against a specific version's dump + IPA
+PYTHONPATH=shared:. TARGET_VERSION=1.0.2 python3 -m tools.verify_sites \
+  --recipe recipes \
+  --index  assets/1.0.2/dump.cs.index.json \
+  --ipa    assets/1.0.2/Kiou-1.0.2.ipa
 ```
 

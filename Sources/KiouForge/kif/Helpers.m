@@ -158,26 +158,26 @@ static Position_ToSFEN_t       g_PositionToSFEN  = NULL;
 // Resolve the il2cpp NativeFunction pointers we use. Idempotent and cheap;
 // safe to call once per export call.
 static void resolveIl2cppFunctions(void) {
-    if (g_kfUnityBase == 0) return;
+    if (g_unityBase == 0) return;
     if (!g_GetUSIText) {
         g_GetUSIText = (GameCtrl_GetUSIText_t)
-            (void *)(g_kfUnityBase + RVA_GAMECTRL_GET_USI_TEXT);
+            (void *)(g_unityBase + RVA_GAMECTRL_GET_USI_TEXT);
     }
     if (!g_ParseUSI) {
         g_ParseUSI = (USIParser_ParseUSI_t)
-            (void *)(g_kfUnityBase + RVA_USIPARSER_PARSE_USI);
+            (void *)(g_unityBase + RVA_USIPARSER_PARSE_USI);
     }
     if (!g_KIFOpts_Ctor) {
         g_KIFOpts_Ctor = (KIFWriteOptions_Ctor_t)
-            (void *)(g_kfUnityBase + RVA_KIFWRITEOPTIONS_CTOR);
+            (void *)(g_unityBase + RVA_KIFWRITEOPTIONS_CTOR);
     }
     if (!g_KIFWriter_Write) {
         g_KIFWriter_Write = (KIFWriter_Write_t)
-            (void *)(g_kfUnityBase + RVA_KIFWRITER_WRITE);
+            (void *)(g_unityBase + RVA_KIFWRITER_WRITE);
     }
     if (!g_PositionToSFEN) {
         g_PositionToSFEN = (Position_ToSFEN_t)
-            (void *)(g_kfUnityBase + RVA_POSITION_TO_SFEN);
+            (void *)(g_unityBase + RVA_POSITION_TO_SFEN);
     }
 }
 

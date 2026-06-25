@@ -6,7 +6,6 @@ services:
     volumes:
       - ../:/home/vscode/app:cached
       - venv:/home/vscode/app/.venv
-    network_mode: host
     tty: true
     stdin_open: true
 
