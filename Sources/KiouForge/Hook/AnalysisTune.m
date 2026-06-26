@@ -7,9 +7,9 @@
 // gated on KIOU_FEATURE_ANALYSIS_TUNE. Affects post-game analysis only.
 // ===========================================================================
 
-#define RVA_NSS_SETHASHSIZE    KIOU_KF_SITE_RVA_NSS_SETHASHSIZE
-#define RVA_NSS_SETSKILLEVEL   KIOU_KF_SITE_RVA_NSS_SETSKILLEVEL
-#define RVA_NSS_SEARCHFULL     KIOU_KF_SITE_RVA_NSS_SEARCHFULL
+#define RVA_NSS_SETHASHSIZE    KIOU_HOOK_RVA_NSS_SETHASHSIZE
+#define RVA_NSS_SETSKILLEVEL   KIOU_HOOK_RVA_NSS_SETSKILLEVEL
+#define RVA_NSS_SEARCHFULL     KIOU_HOOK_RVA_NSS_SEARCHFULL
 
 typedef void (*NSSSetHashSize_t)(void *self, int32_t mb, void *mi);
 typedef void (*NSSSetSkillLevel_t)(void *self, int32_t level, void *mi);
@@ -57,14 +57,14 @@ static int32_t pickDepth(int32_t depth) {
 void KFHookNSSSetHashSizeEntry(void *self, int32_t mb, void *mi) {
     int32_t v = pickHashMB(mb);
     NSSSetHashSize_t bypass =
-        (NSSSetHashSize_t)g_inject_entry[KIOU_KF_HOOK_NSS_SETHASHSIZE];
+        (NSSSetHashSize_t)g_inject_entry[KIOU_HOOK_ID_NSS_SETHASHSIZE];
     if (bypass) bypass(self, v, mi);
 }
 
 void KFHookNSSSetSkillLevelEntry(void *self, int32_t level, void *mi) {
     int32_t v = pickSkillLevel(level);
     NSSSetSkillLevel_t bypass =
-        (NSSSetSkillLevel_t)g_inject_entry[KIOU_KF_HOOK_NSS_SETSKILLEVEL];
+        (NSSSetSkillLevel_t)g_inject_entry[KIOU_HOOK_ID_NSS_SETSKILLEVEL];
     if (bypass) bypass(self, v, mi);
 }
 
@@ -72,7 +72,7 @@ KFSyncSearchResult KFHookNSSSearchFullEntry(void *self, void *sfen,
                                             int32_t depth, void *mi) {
     int32_t v = pickDepth(depth);
     NSSSearchFull_t bypass =
-        (NSSSearchFull_t)g_inject_entry[KIOU_KF_HOOK_NSS_SEARCHFULL];
+        (NSSSearchFull_t)g_inject_entry[KIOU_HOOK_ID_NSS_SEARCHFULL];
     if (bypass) return bypass(self, sfen, v, mi);
     KFSyncSearchResult empty = {0};
     return empty;

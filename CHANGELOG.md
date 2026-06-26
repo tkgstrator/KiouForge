@@ -4,6 +4,15 @@ All notable changes to KiouForge are documented here.
 
 ## [Unreleased]
 
+## [0.2.1] — 2026-06-26
+
+### Changed
+
+- Extracted the shared KIOU binary catalog (RVAs, hook-id enum, cave geometry) and the account/gRPC hook implementations into a new private submodule `IPA-Patch/KIOU-Hook`, mounted at `vendor/KIOU-Hook/`. KiouForge cherry-picks the `.m` files it compiles in via the Makefile and uses the new name-based hook API (`KIOUHookOrig` / `KIOUHookInstall` / `KIOUHookSiteAddr`) so shared hook bodies never reference RVAs or slot enums directly. Behavior unchanged.
+- Renamed the `Sources/KiouForge` subdirectories to PascalCase for consistency with the rest of the project layout.
+- Dropped the `KF` prefix from the KIOU-Hook catalog identifiers in favour of the `KIOU_HOOK_` namespace; bumped the `vendor/KIOU-Hook` submodule to `99f86a9`.
+- Bumped the Chinlan and Kanade submodules to their latest `master`.
+
 ## [0.2.0] — 2026-06-25
 
 ### Added

@@ -1,6 +1,6 @@
 Package: work.tkgstrator.kiouforge
 Name: KiouForge
-Version: 0.2.0
+Version: 0.2.1
 Architecture: iphoneos-arm64
 Description: KIOU (Shogi) local quality-of-life tool. Extends the frame-rate preset beyond 30/60, suppresses false AFK warnings during long-think sessions, and lets you tune the depth and hash used by the on-device post-game kifu analysis engine. Runs entirely client-side and never modifies any server-stored data. For authorized testing only.
 Maintainer: NEVER KNOWS BEST

@@ -4,7 +4,7 @@
 // hook/FrameRate.m — FPS override via Application.set_targetFrameRate.
 // ===========================================================================
 
-#define RVA_SET_TARGET_FRAMERATE  KIOU_KF_SITE_RVA_SET_TARGET_FRAMERATE
+#define RVA_SET_TARGET_FRAMERATE  KIOU_HOOK_RVA_SET_TARGET_FRAMERATE
 
 // IL2CPP ABI for a static method: (value, MethodInfo *mi)
 typedef void (*SetTargetFrameRate_t)(int32_t value, void *mi);
@@ -37,7 +37,7 @@ void KFApplyFPS(int32_t fps) {
 void KFHookSetTargetFrameRateEntry(int32_t value, void *mi) {
     int32_t v = pickFPS(value);
     SetTargetFrameRate_t bypass =
-        (SetTargetFrameRate_t)g_inject_entry[KIOU_KF_HOOK_SET_TARGET_FRAMERATE];
+        (SetTargetFrameRate_t)g_inject_entry[KIOU_HOOK_ID_SET_TARGET_FRAMERATE];
     if (bypass) bypass(v, mi);
 }
 

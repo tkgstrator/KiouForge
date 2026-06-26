@@ -23,6 +23,7 @@ TARGET_BUNDLE_ID         := com.neconome.shogi
 TARGET_VERSION           ?= 1.0.2
 DECRYPTED_IPA            ?= $(CURDIR)/assets/$(TARGET_VERSION)/Kiou-$(TARGET_VERSION).ipa
 IPA_RECIPE               := recipes.__init__
+KIOU_HOOK_DIR            := $(CURDIR)/vendor/KIOU-Hook
 IPA_FRAMEWORK            := UnityFramework
 
 BUILD_COMMIT_DEFINE      := KIOU_FORGE_COMMIT
@@ -44,6 +45,11 @@ $(TWEAK_NAME)_FILES      := $(shell find $(TWEAK_SOURCES_DIR) \
 $(TWEAK_NAME)_FILES      += Sources/Chinlan/logging.m
 $(TWEAK_NAME)_FILES      += Sources/Chinlan/logserver.m
 $(TWEAK_NAME)_FILES      += Sources/Chinlan/chinlan.m
+# KIOU-Hook shared catalog + cherry-picked hook implementations.
+$(TWEAK_NAME)_FILES      += vendor/KIOU-Hook/KIOUHook.m
+$(TWEAK_NAME)_FILES      += vendor/KIOU-Hook/Account/Persistence.m
+$(TWEAK_NAME)_FILES      += vendor/KIOU-Hook/Hook/AccountObserve.m
+$(TWEAK_NAME)_FILES      += vendor/KIOU-Hook/Hook/GrpcLogging.m
 
 BUILD_COMMIT             ?= $(shell git rev-parse --short=7 HEAD 2>/dev/null || echo unknown)
 
@@ -58,7 +64,8 @@ endif
 $(TWEAK_NAME)_CFLAGS     := -fobjc-arc -Wno-unused-function \
                             -D$(BUILD_COMMIT_DEFINE)=\"$(BUILD_COMMIT)\" \
                             -DKIOU_FORGE_VERSION=\"$(PACKAGE_VERSION)\" \
-                            -ISources/Chinlan -I$(TWEAK_SOURCES_DIR)
+                            -ISources/Chinlan -I$(TWEAK_SOURCES_DIR) \
+                            -Ivendor/KIOU-Hook
 ifdef FINAL_RELEASE
 $(TWEAK_NAME)_CFLAGS     += -DFINAL_RELEASE=1
 endif
@@ -116,7 +123,9 @@ ipa:: chinlan
 	  echo "       override with: make ipa TARGET_VERSION=<ver>"; \
 	  exit 1; \
 	fi
-	@TARGET_VERSION="$(TARGET_VERSION)" ./shared/tools/build_patched_ipa.sh \
+	@TARGET_VERSION="$(TARGET_VERSION)" \
+	 PYTHONPATH="$(KIOU_HOOK_DIR):$$PYTHONPATH" \
+	 ./shared/tools/build_patched_ipa.sh \
 	  --recipe    "$(IPA_RECIPE)" \
 	  --framework "$(IPA_FRAMEWORK)" \
 	  --dylib     "$(IPA_DYLIB)" \

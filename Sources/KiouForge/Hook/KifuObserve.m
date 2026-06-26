@@ -9,7 +9,7 @@
 //
 // Chinlan path:
 //   Each cave passes its hook_id in W6 to the shared observer slot at
-//   KIOU_KF_HOOK_SLOT_RVA; dispatch_one in ChinlanDispatcher.m switches
+//   KIOU_HOOK_OBSERVER_SLOT_RVA; dispatch_one in ChinlanDispatcher.m switches
 //   on hook_id and calls HookXxxEnd directly.
 //
 // JB path:
@@ -17,11 +17,11 @@
 //   OnMatchEnd site; the chain-to-orig path runs after the observer body.
 // ===========================================================================
 
-#define RVA_AI_END             KIOU_KF_SITE_RVA_AI_END
-#define RVA_CPUSTREAM_END      KIOU_KF_SITE_RVA_CPUSTREAM_END
-#define RVA_LOCAL_END          KIOU_KF_SITE_RVA_LOCAL_END
-#define RVA_ONLINE_END         KIOU_KF_SITE_RVA_ONLINE_END
-#define RVA_REPLAY_END         KIOU_KF_SITE_RVA_REPLAY_END
+#define RVA_AI_END             KIOU_HOOK_RVA_AI_END
+#define RVA_CPUSTREAM_END      KIOU_HOOK_RVA_CPUSTREAM_END
+#define RVA_LOCAL_END          KIOU_HOOK_RVA_LOCAL_END
+#define RVA_ONLINE_END         KIOU_HOOK_RVA_ONLINE_END
+#define RVA_REPLAY_END         KIOU_HOOK_RVA_REPLAY_END
 
 // 16-byte UniTask return (see KFUniTaskRet in Internal.h).
 typedef KFUniTaskRet (*OnMatchEndAsync_t)(void *self, void *ct);
