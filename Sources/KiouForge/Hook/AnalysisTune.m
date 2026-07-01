@@ -13,7 +13,7 @@
 
 typedef void (*NSSSetHashSize_t)(void *self, int32_t mb, void *mi);
 typedef void (*NSSSetSkillLevel_t)(void *self, int32_t level, void *mi);
-typedef KFSyncSearchResult (*NSSSearchFull_t)(void *self, void *sfen,
+typedef KIOUSyncSearchResult (*NSSSearchFull_t)(void *self, void *sfen,
                                               int32_t depth, void *mi);
 
 #if !IPA_CHINLAN
@@ -23,8 +23,8 @@ static NSSSearchFull_t    orig_NSS_SearchFull    = NULL;
 #endif
 
 static int32_t pickHashMB(int32_t mb) {
-    int32_t target = KFFeatureEnabled(KIOU_FEATURE_ANALYSIS_TUNE)
-                   ? KFAnalysisHashMB() : mb;
+    int32_t target = KIOUFeatureEnabled(KIOU_FEATURE_ANALYSIS_TUNE)
+                   ? KIOUAnalysisHashMB() : mb;
     if (target != mb) {
         IPALog([NSString stringWithFormat:
                   @"[ANALYSIS] SetHashSize %d -> %d MB (override)", mb, target]);
@@ -33,8 +33,8 @@ static int32_t pickHashMB(int32_t mb) {
 }
 
 static int32_t pickSkillLevel(int32_t level) {
-    int32_t target = KFFeatureEnabled(KIOU_FEATURE_ANALYSIS_TUNE)
-                   ? KFAnalysisSkillLevel() : level;
+    int32_t target = KIOUFeatureEnabled(KIOU_FEATURE_ANALYSIS_TUNE)
+                   ? KIOUAnalysisSkillLevel() : level;
     if (target != level) {
         IPALog([NSString stringWithFormat:
                   @"[ANALYSIS] SetSkillLevel %d -> %d (override)", level, target]);
@@ -43,8 +43,8 @@ static int32_t pickSkillLevel(int32_t level) {
 }
 
 static int32_t pickDepth(int32_t depth) {
-    int32_t target = KFFeatureEnabled(KIOU_FEATURE_ANALYSIS_TUNE)
-                   ? KFAnalysisDepth() : depth;
+    int32_t target = KIOUFeatureEnabled(KIOU_FEATURE_ANALYSIS_TUNE)
+                   ? KIOUAnalysisDepth() : depth;
     if (target != depth) {
         IPALog([NSString stringWithFormat:
                   @"[ANALYSIS] SearchFull depth %d -> %d (override)",
@@ -54,38 +54,38 @@ static int32_t pickDepth(int32_t depth) {
 }
 
 #if IPA_CHINLAN
-void KFHookNSSSetHashSizeEntry(void *self, int32_t mb, void *mi) {
+void KIOUHookNSSSetHashSizeEntry(void *self, int32_t mb, void *mi) {
     int32_t v = pickHashMB(mb);
     NSSSetHashSize_t bypass =
         (NSSSetHashSize_t)g_inject_entry[KIOU_HOOK_ID_NSS_SETHASHSIZE];
     if (bypass) bypass(self, v, mi);
 }
 
-void KFHookNSSSetSkillLevelEntry(void *self, int32_t level, void *mi) {
+void KIOUHookNSSSetSkillLevelEntry(void *self, int32_t level, void *mi) {
     int32_t v = pickSkillLevel(level);
     NSSSetSkillLevel_t bypass =
         (NSSSetSkillLevel_t)g_inject_entry[KIOU_HOOK_ID_NSS_SETSKILLEVEL];
     if (bypass) bypass(self, v, mi);
 }
 
-KFSyncSearchResult KFHookNSSSearchFullEntry(void *self, void *sfen,
+KIOUSyncSearchResult KIOUHookNSSSearchFullEntry(void *self, void *sfen,
                                             int32_t depth, void *mi) {
     int32_t v = pickDepth(depth);
     NSSSearchFull_t bypass =
         (NSSSearchFull_t)g_inject_entry[KIOU_HOOK_ID_NSS_SEARCHFULL];
     if (bypass) return bypass(self, sfen, v, mi);
-    KFSyncSearchResult empty = {0};
+    KIOUSyncSearchResult empty = {0};
     return empty;
 }
 
-void KFInstallAnalysisTuneHook(uintptr_t unityBase) {
+void KIOUInstallAnalysisTuneHook(uintptr_t unityBase) {
     (void)unityBase;
     IPALog([NSString stringWithFormat:
               @"[CHINLAN] AnalysisTune: entry hooks wired "
               @"(depth=%d hash=%d MB skill=%d)",
-              (int)KFAnalysisDepth(),
-              (int)KFAnalysisHashMB(),
-              (int)KFAnalysisSkillLevel()]);
+              (int)KIOUAnalysisDepth(),
+              (int)KIOUAnalysisHashMB(),
+              (int)KIOUAnalysisSkillLevel()]);
 }
 #else
 static void HookNSSSetHashSize(void *self, int32_t mb, void *mi) {
@@ -98,15 +98,15 @@ static void HookNSSSetSkillLevel(void *self, int32_t level, void *mi) {
     if (orig_NSS_SetSkillLevel) orig_NSS_SetSkillLevel(self, v, mi);
 }
 
-static KFSyncSearchResult HookNSSSearchFull(void *self, void *sfen,
+static KIOUSyncSearchResult HookNSSSearchFull(void *self, void *sfen,
                                             int32_t depth, void *mi) {
     int32_t v = pickDepth(depth);
     if (orig_NSS_SearchFull) return orig_NSS_SearchFull(self, sfen, v, mi);
-    KFSyncSearchResult empty = {0};
+    KIOUSyncSearchResult empty = {0};
     return empty;
 }
 
-void KFInstallAnalysisTuneHook(uintptr_t unityBase) {
+void KIOUInstallAnalysisTuneHook(uintptr_t unityBase) {
     {
         uintptr_t addr = unityBase + RVA_NSS_SETHASHSIZE;
         MSHookFunction((void *)addr,
@@ -114,7 +114,7 @@ void KFInstallAnalysisTuneHook(uintptr_t unityBase) {
                        (void **)&orig_NSS_SetHashSize);
         IPALog([NSString stringWithFormat:
                   @"NativeSyncSession.SetHashSize hooked @0x%lx hash=%d MB",
-                  (unsigned long)addr, (int)KFAnalysisHashMB()]);
+                  (unsigned long)addr, (int)KIOUAnalysisHashMB()]);
     }
     {
         uintptr_t addr = unityBase + RVA_NSS_SETSKILLEVEL;
@@ -123,7 +123,7 @@ void KFInstallAnalysisTuneHook(uintptr_t unityBase) {
                        (void **)&orig_NSS_SetSkillLevel);
         IPALog([NSString stringWithFormat:
                   @"NativeSyncSession.SetSkillLevel hooked @0x%lx skill=%d",
-                  (unsigned long)addr, (int)KFAnalysisSkillLevel()]);
+                  (unsigned long)addr, (int)KIOUAnalysisSkillLevel()]);
     }
     {
         uintptr_t addr = unityBase + RVA_NSS_SEARCHFULL;
@@ -132,7 +132,7 @@ void KFInstallAnalysisTuneHook(uintptr_t unityBase) {
                        (void **)&orig_NSS_SearchFull);
         IPALog([NSString stringWithFormat:
                   @"NativeSyncSession.SearchFull hooked @0x%lx depth=%d",
-                  (unsigned long)addr, (int)KFAnalysisDepth()]);
+                  (unsigned long)addr, (int)KIOUAnalysisDepth()]);
     }
 }
 #endif

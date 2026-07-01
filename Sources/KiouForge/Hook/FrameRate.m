@@ -14,8 +14,8 @@ static SetTargetFrameRate_t orig_set_targetFrameRate = NULL;
 #endif
 
 static int32_t pickFPS(int32_t value) {
-    int32_t v = KFFeatureEnabled(KIOU_FEATURE_FPS_OVERRIDE)
-              ? KFTargetFPS() : value;
+    int32_t v = KIOUFeatureEnabled(KIOU_FEATURE_FPS_OVERRIDE)
+              ? KIOUTargetFPS() : value;
     if (v != value) {
         IPALog([NSString stringWithFormat:
                   @"[FPS] set_targetFrameRate %d -> %d (override)", value, v]);
@@ -25,7 +25,7 @@ static int32_t pickFPS(int32_t value) {
 
 // Direct call from the settings slider callback so the new value takes
 // effect immediately without waiting for KIOU's next settings apply.
-void KFApplyFPS(int32_t fps) {
+void KIOUApplyFPS(int32_t fps) {
     if (g_unityBase == 0) return;
     SetTargetFrameRate_t fn =
         (SetTargetFrameRate_t)(g_unityBase + RVA_SET_TARGET_FRAMERATE);
@@ -34,18 +34,18 @@ void KFApplyFPS(int32_t fps) {
 }
 
 #if IPA_CHINLAN
-void KFHookSetTargetFrameRateEntry(int32_t value, void *mi) {
+void KIOUHookSetTargetFrameRateEntry(int32_t value, void *mi) {
     int32_t v = pickFPS(value);
     SetTargetFrameRate_t bypass =
         (SetTargetFrameRate_t)g_inject_entry[KIOU_HOOK_ID_SET_TARGET_FRAMERATE];
     if (bypass) bypass(v, mi);
 }
 
-void KFInstallFrameRateHook(uintptr_t unityBase) {
+void KIOUInstallFrameRateHook(uintptr_t unityBase) {
     (void)unityBase;
     IPALog([NSString stringWithFormat:
               @"[CHINLAN] set_targetFrameRate: entry hook wired (fps=%d)",
-              (int)KFTargetFPS()]);
+              (int)KIOUTargetFPS()]);
 }
 #else
 static void HookSetTargetFrameRate(int32_t value, void *mi) {
@@ -53,13 +53,13 @@ static void HookSetTargetFrameRate(int32_t value, void *mi) {
     if (orig_set_targetFrameRate) orig_set_targetFrameRate(v, mi);
 }
 
-void KFInstallFrameRateHook(uintptr_t unityBase) {
+void KIOUInstallFrameRateHook(uintptr_t unityBase) {
     uintptr_t addr = unityBase + RVA_SET_TARGET_FRAMERATE;
     MSHookFunction((void *)addr,
                    (void *)HookSetTargetFrameRate,
                    (void **)&orig_set_targetFrameRate);
     IPALog([NSString stringWithFormat:
               @"Application.set_targetFrameRate hooked @0x%lx (base+0x%x) fps=%d",
-              (unsigned long)addr, RVA_SET_TARGET_FRAMERATE, (int)KFTargetFPS()]);
+              (unsigned long)addr, RVA_SET_TARGET_FRAMERATE, (int)KIOUTargetFPS()]);
 }
 #endif

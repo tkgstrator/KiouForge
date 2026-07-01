@@ -8,7 +8,7 @@
 // ===========================================================================
 
 #ifndef IPA_CHINLAN
-void KFInstallVersionHook(__unused uintptr_t unityBase) { }
+void KIOUInstallVersionHook(__unused uintptr_t unityBase) { }
 #else
-void KFPublishVersionSlots(__unused uintptr_t unityBase) { }
+void KIOUPublishVersionSlots(__unused uintptr_t unityBase) { }
 #endif

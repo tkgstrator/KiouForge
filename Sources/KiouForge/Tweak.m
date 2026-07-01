@@ -8,11 +8,11 @@
 // KiouForge — entry point.
 //
 // Distribution shapes:
-//   JB rootless / jailed (Dobby static): KFInstall*Hook() patches the
+//   JB rootless / jailed (Dobby static): KIOUInstall*Hook() patches the
 //     UnityFramework at runtime via MSHookFunction / DobbyHook.
 //   Chinlan (make ipa): UnityFramework is statically rewritten so each
 //     site BLs into a __TEXT cave; the dylib publishes hook pointers into
-//     the __DATA slot table via KFChinlanPublish().
+//     the __DATA slot table via KIOUChinlanPublish().
 // ===========================================================================
 
 static BOOL g_unityHooked = NO;
@@ -46,15 +46,15 @@ static void installUnityHooks(uintptr_t unityBase, const char *unityName) {
               (unsigned long)unityBase, unityName ? unityName : "?"]);
 
 #if IPA_CHINLAN
-    // Publish the slot table and bypass entries before any KFInstall* runs;
+    // Publish the slot table and bypass entries before any KIOUInstall* runs;
     // the chinlan branch of each installer reads g_kfHookSlot.
-    KFChinlanPublish(unityBase);
+    KIOUChinlanPublish(unityBase);
 #endif
-    KFInstallFrameRateHook(unityBase);
-    KFInstallAnalysisTuneHook(unityBase);
-    KFInstallKifuObserveHook(unityBase);
-    KFInstallAccountObserveHook(unityBase);
-    KFInstallGrpcLoggingHook(unityBase);
+    KIOUInstallFrameRateHook(unityBase);
+    KIOUInstallAnalysisTuneHook(unityBase);
+    KIOUInstallKifuObserveHook(unityBase);
+    KIOUInstallAccountObserveHook(unityBase);
+    KIOUInstallGrpcLoggingHook(unityBase);
 
     g_unityHooked = YES;
     IPALog(@"=== KiouForge: all hooks installed ===");
@@ -81,7 +81,7 @@ __attribute__((constructor)) static void init(void) {
 
     // Settings panel (right-edge swipe). Dispatches to main queue internally
     // and retries until the key window is available — safe to call here.
-    KFGestureInstall();
+    KIOUGestureInstall();
 
     // Wire UnityFramework hooks the moment UnityFramework is mapped.
     // _dyld_register_func_for_add_image fires synchronously for every image

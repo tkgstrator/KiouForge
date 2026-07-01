@@ -9,7 +9,7 @@
 //
 // Design:
 //   * The settings table itself is owned by Hook_SettingsUI.m via
-//     `KFPresentSettings()`. We don't duplicate any of that
+//     `KIOUPresentSettings()`. We don't duplicate any of that
 //     UI here — we only own the gesture that opens it.
 //   * The recognizer is attached to the key window's gesture-recognizer
 //     list. Touches inside game UI are unaffected: only screen-edge
@@ -22,13 +22,13 @@
 // stay easy to diff side-by-side.
 // ===========================================================================
 
-// KFPresentSettings() is implemented in Hook_SettingsUI.m. Same
+// KIOUPresentSettings() is implemented in Hook_SettingsUI.m. Same
 // extern-in-callsite pattern Hook_FriendUnhide.m uses; do not lift this
 // into Internal.h.
-extern void KFPresentSettings(void);
+extern void KIOUPresentSettings(void);
 
 // ---------------------------------------------------------------------------
-// KFKeyWindow — iOS 13+ safe replacement for the deprecated
+// KIOUKeyWindow — iOS 13+ safe replacement for the deprecated
 // [UIApplication sharedApplication].keyWindow. Walks connected
 // UIWindowScenes and returns the first key window in a foreground-active
 // scene. Falls back to the first visible window if none is marked key.
@@ -38,7 +38,7 @@ extern void KFPresentSettings(void);
 // at file scope). Keeping a copy here costs nothing and means this file is
 // self-contained — Hook_SettingsUI.m doesn't need to expose its helper.
 // ---------------------------------------------------------------------------
-static UIWindow *KFKeyWindow(void) {
+static UIWindow *KIOUKeyWindow(void) {
     for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
         if (![scene isKindOfClass:[UIWindowScene class]]) continue;
         UIWindowScene *ws = (UIWindowScene *)scene;
@@ -52,46 +52,46 @@ static UIWindow *KFKeyWindow(void) {
 }
 
 // ===========================================================================
-// KFGestureHandler — target for the UIScreenEdgePanGestureRecognizer.
+// KIOUGestureHandler — target for the UIScreenEdgePanGestureRecognizer.
 // Kept as a separate NSObject so its lifetime is independent of any VC.
 // ===========================================================================
-@interface KFGestureHandler : NSObject
+@interface KIOUGestureHandler : NSObject
 - (void)handleEdgePan:(UIScreenEdgePanGestureRecognizer *)gr;
 @end
 
-@implementation KFGestureHandler
+@implementation KIOUGestureHandler
 
 - (void)handleEdgePan:(UIScreenEdgePanGestureRecognizer *)gr {
     // Fire on Began only — we don't need to track the drag.
     if (gr.state != UIGestureRecognizerStateBegan) return;
     IPALog(@"[KF] right-edge swipe began -> presenting settings");
-    KFPresentSettings();
+    KIOUPresentSettings();
 }
 
 @end
 
 // ---------------------------------------------------------------------------
-// KFGestureInstall — public entry point called from Tweak.m.
+// KIOUGestureInstall — public entry point called from Tweak.m.
 //
 // Attaches a UIScreenEdgePanGestureRecognizer (right edge) to the key
 // window. The handler object is retained statically so it lives for the
 // app's lifetime without needing an owner. Retries every second until
 // the window is up; once attached, becomes a no-op.
 // ---------------------------------------------------------------------------
-void KFGestureInstall(void) {
+void KIOUGestureInstall(void) {
     dispatch_async(dispatch_get_main_queue(), ^{
-        UIWindow *win = KFKeyWindow();
+        UIWindow *win = KIOUKeyWindow();
         if (!win) {
             dispatch_after(
                 dispatch_time(DISPATCH_TIME_NOW,
                               (int64_t)(1.0 * NSEC_PER_SEC)),
                 dispatch_get_main_queue(), ^{
-                    KFGestureInstall();
+                    KIOUGestureInstall();
                 });
             return;
         }
 
-        // Guard: don't install twice (e.g. if KFGestureInstall is somehow
+        // Guard: don't install twice (e.g. if KIOUGestureInstall is somehow
         // called a second time after a window recreation).
         for (UIGestureRecognizer *gr in win.gestureRecognizers) {
             if ([gr isKindOfClass:[UIScreenEdgePanGestureRecognizer class]]) {
@@ -104,9 +104,9 @@ void KFGestureInstall(void) {
             }
         }
 
-        static KFGestureHandler *sHandler = nil;
+        static KIOUGestureHandler *sHandler = nil;
         static dispatch_once_t once;
-        dispatch_once(&once, ^{ sHandler = [[KFGestureHandler alloc] init]; });
+        dispatch_once(&once, ^{ sHandler = [[KIOUGestureHandler alloc] init]; });
 
         UIScreenEdgePanGestureRecognizer *gr =
             [[UIScreenEdgePanGestureRecognizer alloc]

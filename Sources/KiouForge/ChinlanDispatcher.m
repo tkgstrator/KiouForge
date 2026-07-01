@@ -13,7 +13,7 @@
 // Hook_*.m observer body.
 //
 // CAVE_ENTRY caves each load their own slot at unityBase +
-// KIOU_HOOK_ENTRY_SLOT_BASE_RVA + slot_index*8 and BLR it. KFChinlanPublish()
+// KIOU_HOOK_ENTRY_SLOT_BASE_RVA + slot_index*8 and BLR it. KIOUChinlanPublish()
 // writes the live hook function pointers into those slots.
 //
 // g_inject_entry[i] holds the per-site cave-bypass entry pointer so a
@@ -40,16 +40,17 @@ extern void HookReplayEnd(void *self, void *ct);
 // replace orig; the body calls the cave bypass (resolved by KIOUHookOrig)
 // to invoke the original method when needed.
 // ---------------------------------------------------------------------------
-extern void  KFHookSetTargetFrameRateEntry(int32_t value, void *mi);
-extern void  KFHookNSSSetHashSizeEntry(void *self, int32_t mb, void *mi);
-extern void  KFHookNSSSetSkillLevelEntry(void *self, int32_t level, void *mi);
-extern void *KFHookNSSSearchFullEntry(void *self, void *sfen, int32_t depth, void *mi);
-extern bool  KFHookAccountExists(void *data);
-extern void *KFHookLoginArgsCreate(void *deviceId, void *distinctId);
-extern void *KFHookRegisterUserArgsCreate(void *userName, void *distinctId);
-extern void  KFHookRunLoginSeqMoveNext(void *self);
-extern void  KFHookGetSelfProfileMoveNext(void *self);
-extern void *KFHookHttpMsgInvokerSendAsync(void *self, void *request, void *ct);
+extern void               KIOUHookSetTargetFrameRateEntry(int32_t value, void *mi);
+extern void               KIOUHookNSSSetHashSizeEntry(void *self, int32_t mb, void *mi);
+extern void               KIOUHookNSSSetSkillLevelEntry(void *self, int32_t level, void *mi);
+extern KIOUSyncSearchResult KIOUHookNSSSearchFullEntry(void *self, void *sfen, int32_t depth, void *mi);
+extern bool               KIOUHookAccountExists(void *data, void *mi);
+extern void *             KIOUHookLoginArgsCreate(void *deviceId, void *distinctId, void *mi);
+extern void *             KIOUHookRegisterUserArgsCreate(void *userName, void *distinctId, void *mi);
+extern void               KIOUHookRunLoginSeqMoveNext(void *self, void *mi);
+extern void               KIOUHookGetSelfProfileMoveNext(void *self, void *mi);
+extern void *             KIOUHookHttpMsgInvokerSendAsync(void *self, void *request, void *ct, void *mi);
+extern void               KIOUHookHeaderProviderSetOrUpdate(void *self, void *keyStr, void *valueStr, void *mi);
 
 // ---------------------------------------------------------------------------
 // dispatch_one — single shared observer slot, switches on W6=hook_id.
@@ -91,10 +92,10 @@ static void *bypass_entry_for_hook(uintptr_t unityBase, uint32_t hook_id) {
 }
 
 // ---------------------------------------------------------------------------
-// KFChinlanPublish — install the observer dispatcher pointer + entry slot
+// KIOUChinlanPublish — install the observer dispatcher pointer + entry slot
 // table the moment UnityFramework's base address is known.
 // ---------------------------------------------------------------------------
-void KFChinlanPublish(uintptr_t unityBase) {
+void KIOUChinlanPublish(uintptr_t unityBase) {
     if (unityBase == 0) {
         IPALog(@"[CHINLAN] publish skipped: unityBase is zero");
         return;
@@ -113,16 +114,17 @@ void KFChinlanPublish(uintptr_t unityBase) {
     // Entry-slot table — one slot per CAVE_ENTRY hook.
     void * volatile *entrySlots =
         (void * volatile *)(unityBase + KIOU_HOOK_ENTRY_SLOT_BASE_RVA);
-    entrySlots[KIOU_HOOK_SLOT_SET_TARGET_FRAMERATE]      = (void *)&KFHookSetTargetFrameRateEntry;
-    entrySlots[KIOU_HOOK_SLOT_NSS_SETHASHSIZE]           = (void *)&KFHookNSSSetHashSizeEntry;
-    entrySlots[KIOU_HOOK_SLOT_NSS_SETSKILLEVEL]          = (void *)&KFHookNSSSetSkillLevelEntry;
-    entrySlots[KIOU_HOOK_SLOT_NSS_SEARCHFULL]            = (void *)&KFHookNSSSearchFullEntry;
-    entrySlots[KIOU_HOOK_SLOT_ACCOUNT_EXISTS]            = (void *)&KFHookAccountExists;
-    entrySlots[KIOU_HOOK_SLOT_LOGIN_ARGS_CREATE]         = (void *)&KFHookLoginArgsCreate;
-    entrySlots[KIOU_HOOK_SLOT_REGISTER_USER_ARGS_CREATE] = (void *)&KFHookRegisterUserArgsCreate;
-    entrySlots[KIOU_HOOK_SLOT_RUN_LOGIN_SEQ_MOVENEXT]    = (void *)&KFHookRunLoginSeqMoveNext;
-    entrySlots[KIOU_HOOK_SLOT_GET_SELF_PROFILE_MOVENEXT] = (void *)&KFHookGetSelfProfileMoveNext;
-    entrySlots[KIOU_HOOK_SLOT_HTTPMSGINVOKER_SEND_ASYNC] = (void *)&KFHookHttpMsgInvokerSendAsync;
+    entrySlots[KIOU_HOOK_SLOT_SET_TARGET_FRAMERATE]      = (void *)&KIOUHookSetTargetFrameRateEntry;
+    entrySlots[KIOU_HOOK_SLOT_NSS_SETHASHSIZE]           = (void *)&KIOUHookNSSSetHashSizeEntry;
+    entrySlots[KIOU_HOOK_SLOT_NSS_SETSKILLEVEL]          = (void *)&KIOUHookNSSSetSkillLevelEntry;
+    entrySlots[KIOU_HOOK_SLOT_NSS_SEARCHFULL]            = (void *)&KIOUHookNSSSearchFullEntry;
+    entrySlots[KIOU_HOOK_SLOT_ACCOUNT_EXISTS]            = (void *)&KIOUHookAccountExists;
+    entrySlots[KIOU_HOOK_SLOT_LOGIN_ARGS_CREATE]         = (void *)&KIOUHookLoginArgsCreate;
+    entrySlots[KIOU_HOOK_SLOT_REGISTER_USER_ARGS_CREATE] = (void *)&KIOUHookRegisterUserArgsCreate;
+    entrySlots[KIOU_HOOK_SLOT_RUN_LOGIN_SEQ_MOVENEXT]    = (void *)&KIOUHookRunLoginSeqMoveNext;
+    entrySlots[KIOU_HOOK_SLOT_GET_SELF_PROFILE_MOVENEXT] = (void *)&KIOUHookGetSelfProfileMoveNext;
+    entrySlots[KIOU_HOOK_SLOT_HTTPMSGINVOKER_SEND_ASYNC] = (void *)&KIOUHookHttpMsgInvokerSendAsync;
+    entrySlots[KIOU_HOOK_SLOT_HEADER_PROVIDER_SET_OR_UPDATE_HEADER] = (void *)&KIOUHookHeaderProviderSetOrUpdate;
 
     IPALog([NSString stringWithFormat:
               @"[CHINLAN] dispatcher=%p observer slot=%p (unityBase+0x%lx) "

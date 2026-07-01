@@ -15,16 +15,16 @@
 
 // Declare the apply helper from Hook_FrameRate.m so we can call it from
 // the FPS stepper callback.
-extern void KFApplyFPS(int32_t fps);
+extern void KIOUApplyFPS(int32_t fps);
 
 // ---------------------------------------------------------------------------
-// KFAccountsViewController — account list with select / delete / reorder.
+// KIOUAccountsViewController — account list with select / delete / reorder.
 // ---------------------------------------------------------------------------
-@interface KFAccountsViewController : UITableViewController
+@interface KIOUAccountsViewController : UITableViewController
 @property (nonatomic, strong) NSMutableArray<NSDictionary *> *accounts;
 @end
 
-@implementation KFAccountsViewController
+@implementation KIOUAccountsViewController
 
 - (instancetype)init {
     self = [super initWithStyle:UITableViewStyleInsetGrouped];
@@ -39,11 +39,11 @@ extern void KFApplyFPS(int32_t fps);
                                                       target:self
                                                       action:@selector(exportAccounts:)];
     self.navigationItem.rightBarButtonItems = @[self.editButtonItem, share];
-    self.accounts = [NSMutableArray arrayWithArray:KFListAccounts()];
+    self.accounts = [NSMutableArray arrayWithArray:KIOUListAccounts()];
     [[NSNotificationCenter defaultCenter]
         addObserver:self
            selector:@selector(onAccountStateChanged:)
-               name:KFAccountStateChangedNotification
+               name:KIOUAccountStateChangedNotification
              object:nil];
 }
 
@@ -53,13 +53,13 @@ extern void KFApplyFPS(int32_t fps);
 
 - (void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
-    self.accounts = [NSMutableArray arrayWithArray:KFListAccounts()];
+    self.accounts = [NSMutableArray arrayWithArray:KIOUListAccounts()];
     [self.tableView reloadData];
 }
 
 - (void)onAccountStateChanged:(NSNotification *)note {
     dispatch_async(dispatch_get_main_queue(), ^{
-        self.accounts = [NSMutableArray arrayWithArray:KFListAccounts()];
+        self.accounts = [NSMutableArray arrayWithArray:KIOUListAccounts()];
         [self.tableView reloadData];
     });
 }
@@ -67,7 +67,7 @@ extern void KFApplyFPS(int32_t fps);
 - (void)exportAccounts:(UIBarButtonItem *)sender {
     NSError *err = nil;
     NSData *data = [NSJSONSerialization
-                       dataWithJSONObject:KFListAccounts()
+                       dataWithJSONObject:KIOUListAccounts()
                                   options:NSJSONWritingPrettyPrinted | NSJSONWritingSortedKeys
                                     error:&err];
     if (data.length == 0) {
@@ -117,7 +117,7 @@ extern void KFApplyFPS(int32_t fps);
     NSString *userId   = acc[@"userId"];
     cell.textLabel.text       = userName.length > 0 ? userName : @"(no name)";
     cell.detailTextLabel.text = openId.length  > 0 ? openId  : @"(no open id)";
-    NSString *activeUserId = KFActiveAccountUserId();
+    NSString *activeUserId = KIOUActiveAccountUserId();
     cell.accessoryType = ([userId isKindOfClass:[NSString class]] &&
                           [userId isEqualToString:activeUserId])
         ? UITableViewCellAccessoryCheckmark
@@ -146,15 +146,15 @@ extern void KFApplyFPS(int32_t fps);
     [alert addAction:[UIAlertAction actionWithTitle:@"切り替え"
                                               style:UIAlertActionStyleDefault
                                             handler:^(UIAlertAction *_) {
-        if (uuid.length > 0) KFSwitchAccount(uuid);
-        KFSetActiveAccountUserId(userId);
+        if (uuid.length > 0) KIOUSwitchAccount(uuid);
+        KIOUSetActiveAccountUserId(userId);
         // Close the settings modal then let KIOU navigate itself back to the
         // title scene — that re-runs AccountExists → LoginAsync with the
         // pending_device_id substitution in effect, no app relaunch needed.
         UIViewController *modalRoot = self.navigationController ?: self;
         UIViewController *presenter = modalRoot.presentingViewController;
         [presenter dismissViewControllerAnimated:YES completion:^{
-            KFNavigateToTitleScene();
+            KIOUNavigateToTitleScene();
         }];
     }]];
     [self presentViewController:alert animated:YES completion:nil];
@@ -170,7 +170,7 @@ extern void KFApplyFPS(int32_t fps);
     if (ip.row >= (NSInteger)self.accounts.count) return;
     NSString *userId = self.accounts[ip.row][@"userId"];
     [self.accounts removeObjectAtIndex:ip.row];
-    if ([userId isKindOfClass:[NSString class]]) KFDeleteAccount(userId);
+    if ([userId isKindOfClass:[NSString class]]) KIOUDeleteAccount(userId);
     [tv deleteRowsAtIndexPaths:@[ip] withRowAnimation:UITableViewRowAnimationAutomatic];
 }
 
@@ -190,7 +190,7 @@ extern void KFApplyFPS(int32_t fps);
 // ---------------------------------------------------------------------------
 // Root settings view controller.
 // ---------------------------------------------------------------------------
-@interface KFSettingsViewController : UITableViewController
+@interface KIOUSettingsViewController : UITableViewController
 @property (nonatomic, strong) UILabel *fpsValueLabel;
 @property (nonatomic, strong) UILabel *depthValueLabel;
 @property (nonatomic, strong) UILabel *hashValueLabel;
@@ -198,7 +198,7 @@ extern void KFApplyFPS(int32_t fps);
 @end
 
 // Sub-screen: per-match-mode toggles for kifu autosave.
-@interface KFKifuModesViewController : UITableViewController
+@interface KIOUKifuModesViewController : UITableViewController
 @end
 
 // Mirror of the preset tables in Persistence.m for local label rendering.
@@ -231,7 +231,7 @@ static const int32_t kHashPresets[] = { 16, 64, 128, 256, 512, 1024 };
 static NSString *const kAboutRepoURL    = @"https://github.com/IPA-Patch/KiouForge";
 static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
 
-@implementation KFSettingsViewController
+@implementation KIOUSettingsViewController
 
 - (instancetype)init {
     if ((self = [super initWithStyle:UITableViewStyleInsetGrouped])) {
@@ -249,7 +249,7 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
     [[NSNotificationCenter defaultCenter]
         addObserver:self
            selector:@selector(onAccountStateChanged:)
-               name:KFAccountStateChangedNotification
+               name:KIOUAccountStateChangedNotification
              object:nil];
 }
 
@@ -347,9 +347,9 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
                 cell.detailTextLabel.textColor = UIColor.secondaryLabelColor;
             }
             cell.textLabel.text = @"Active";
-            NSString *activeUserId = KFActiveAccountUserId();
+            NSString *activeUserId = KIOUActiveAccountUserId();
             NSString *activeName = nil;
-            for (NSDictionary *acc in KFListAccounts()) {
+            for (NSDictionary *acc in KIOUListAccounts()) {
                 NSString *u = acc[@"userId"];
                 if ([u isKindOfClass:[NSString class]] && [u isEqualToString:activeUserId]) {
                     NSString *n = acc[@"userName"];
@@ -374,7 +374,7 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
             cell2.accessoryView = sw;
         }
         cell2.textLabel.text = @"New Register";
-        ((UISwitch *)cell2.accessoryView).on = KFForceRegisterOnNextLaunch();
+        ((UISwitch *)cell2.accessoryView).on = KIOUForceRegisterOnNextLaunch();
         return cell2;
     }
 
@@ -386,25 +386,25 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
         //                            "3 of 5") + disclosure indicator.
         // We dequeue under distinct identifiers so the cached style stays
         // correct across reuse.
-        if (KFFeatureHasNavigation(f)) {
+        if (KIOUFeatureHasNavigation(f)) {
             static NSString *kId = @"feature-nav";
             UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:kId];
             if (!cell) {
                 cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleValue1
                                               reuseIdentifier:kId];
             }
-            cell.textLabel.text = KFFeatureLabel(f);
+            cell.textLabel.text = KIOUFeatureLabel(f);
             cell.accessoryView = nil;  // disclosure indicator below
             cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
             cell.selectionStyle = UITableViewCellSelectionStyleDefault;
             // Caption: master state + per-mode count for Kifu Autosave.
             if (f == KIOU_FEATURE_KIFU_AUTOSAVE) {
-                if (!KFFeatureEnabled(f)) {
+                if (!KIOUFeatureEnabled(f)) {
                     cell.detailTextLabel.text = @"Off";
                 } else {
                     int32_t on = 0;
                     for (int i = 0; i < KIOU_MMODE_COUNT; i++) {
-                        if (KFKifuModeEnabled((KiouMatchMode)i)) on++;
+                        if (KIOUKifuModeEnabled((KiouMatchMode)i)) on++;
                     }
                     cell.detailTextLabel.text =
                         [NSString stringWithFormat:@"%d of %ld",
@@ -412,7 +412,7 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
                 }
             } else {
                 cell.detailTextLabel.text =
-                    KFFeatureEnabled(f) ? @"On" : @"Off";
+                    KIOUFeatureEnabled(f) ? @"On" : @"Off";
             }
             cell.detailTextLabel.textColor = UIColor.secondaryLabelColor;
             return cell;
@@ -425,9 +425,9 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
                                           reuseIdentifier:kId];
             cell.selectionStyle = UITableViewCellSelectionStyleNone;
         }
-        cell.textLabel.text = KFFeatureLabel(f);
+        cell.textLabel.text = KIOUFeatureLabel(f);
         UISwitch *sw = [[UISwitch alloc] init];
-        sw.on = KFFeatureEnabled(f);
+        sw.on = KIOUFeatureEnabled(f);
         sw.tag = f;
         [sw addTarget:self action:@selector(onFeatureToggle:)
      forControlEvents:UIControlEventValueChanged];
@@ -449,7 +449,7 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
         stepper.continuous = NO;
 
         // Only one row in Performance (FPS) for now.
-        int32_t idx = KFFPSIndex();
+        int32_t idx = KIOUFPSIndex();
         cell.textLabel.text = @"FPS";
         cell.detailTextLabel.text = [NSString stringWithFormat:@"%d", kFpsPresets[idx]];
         self.fpsValueLabel = cell.detailTextLabel;
@@ -478,17 +478,17 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
         if (indexPath.row == KF_ENGINE_ROW_DEPTH) {
             cell.textLabel.text = @"Analysis Depth";
             cell.detailTextLabel.text = [NSString stringWithFormat:@"%d",
-                                         (int)KFAnalysisDepth()];
+                                         (int)KIOUAnalysisDepth()];
             self.depthValueLabel = cell.detailTextLabel;
             stepper.minimumValue = 1;
             stepper.maximumValue = 36;
             stepper.stepValue    = 1;
-            stepper.value        = KFAnalysisDepth();
+            stepper.value        = KIOUAnalysisDepth();
             [stepper addTarget:self action:@selector(onDepthChanged:)
                 forControlEvents:UIControlEventValueChanged];
 
         } else if (indexPath.row == KF_ENGINE_ROW_HASH) {
-            int32_t idx = KFAnalysisHashIndex();
+            int32_t idx = KIOUAnalysisHashIndex();
             cell.textLabel.text = @"Analysis Hash";
             cell.detailTextLabel.text = [NSString stringWithFormat:@"%d MB", kHashPresets[idx]];
             self.hashValueLabel = cell.detailTextLabel;
@@ -502,12 +502,12 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
         } else { // KF_ENGINE_ROW_SKILL
             cell.textLabel.text = @"Analysis Skill";
             cell.detailTextLabel.text = [NSString stringWithFormat:@"%d",
-                                         (int)KFAnalysisSkillLevel()];
+                                         (int)KIOUAnalysisSkillLevel()];
             self.skillValueLabel = cell.detailTextLabel;
             stepper.minimumValue = 1;
             stepper.maximumValue = 20;
             stepper.stepValue    = 1;
-            stepper.value        = KFAnalysisSkillLevel();
+            stepper.value        = KIOUAnalysisSkillLevel();
             [stepper addTarget:self action:@selector(onSkillChanged:)
                 forControlEvents:UIControlEventValueChanged];
         }
@@ -539,16 +539,16 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
 
     if (indexPath.section == KF_SECTION_ACCOUNT &&
         indexPath.row == KF_ACCOUNT_ROW_ACTIVE) {
-        KFAccountsViewController *vc = [[KFAccountsViewController alloc] init];
+        KIOUAccountsViewController *vc = [[KIOUAccountsViewController alloc] init];
         [self.navigationController pushViewController:vc animated:YES];
         return;
     }
 
     if (indexPath.section == KF_SECTION_FEATURES) {
         KiouFeature f = (KiouFeature)indexPath.row;
-        if (!KFFeatureHasNavigation(f)) return;
+        if (!KIOUFeatureHasNavigation(f)) return;
         if (f == KIOU_FEATURE_KIFU_AUTOSAVE) {
-            KFKifuModesViewController *vc = [[KFKifuModesViewController alloc] init];
+            KIOUKifuModesViewController *vc = [[KIOUKifuModesViewController alloc] init];
             [self.navigationController pushViewController:vc animated:YES];
         }
         return;
@@ -565,14 +565,14 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
 // ---------------------------------------------------------------------------
 
 - (void)onForceRegisterChanged:(UISwitch *)sw {
-    KFSetForceRegisterOnNextLaunch(sw.on);
+    KIOUSetForceRegisterOnNextLaunch(sw.on);
     if (sw.on) {
         NSString *fresh = [[NSUUID UUID] UUIDString].lowercaseString;
-        KFSetPendingDistinctId(fresh);
-        KFSetPendingDeviceId(fresh);
+        KIOUSetPendingDistinctId(fresh);
+        KIOUSetPendingDeviceId(fresh);
     } else {
-        KFSetPendingDistinctId(nil);
-        KFSetPendingDeviceId(nil);
+        KIOUSetPendingDistinctId(nil);
+        KIOUSetPendingDeviceId(nil);
     }
     IPALog([NSString stringWithFormat:@"[SETTINGS] force_register=%s",
               sw.on ? "true" : "false"]);
@@ -580,38 +580,38 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
 
 - (void)onFeatureToggle:(UISwitch *)sw {
     KiouFeature f = (KiouFeature)sw.tag;
-    KFSetFeatureEnabled(f, sw.isOn);
+    KIOUSetFeatureEnabled(f, sw.isOn);
     IPALog([NSString stringWithFormat:
-              @"[SETTINGS] %@ -> %@", KFFeatureLabel(f), sw.isOn ? @"ON" : @"OFF"]);
+              @"[SETTINGS] %@ -> %@", KIOUFeatureLabel(f), sw.isOn ? @"ON" : @"OFF"]);
 }
 
 - (void)onFpsChanged:(UIStepper *)stepper {
     int32_t idx = (int32_t)stepper.value;
-    KFSetFPSIndex(idx);
-    int32_t fps = KFTargetFPS();
+    KIOUSetFPSIndex(idx);
+    int32_t fps = KIOUTargetFPS();
     self.fpsValueLabel.text = [NSString stringWithFormat:@"%d", fps];
-    KFApplyFPS(fps);  // apply immediately
+    KIOUApplyFPS(fps);  // apply immediately
     IPALog([NSString stringWithFormat:@"[SETTINGS] fps -> %d (idx=%d)", fps, idx]);
 }
 
 - (void)onDepthChanged:(UIStepper *)stepper {
     int32_t v = (int32_t)stepper.value;
-    KFSetAnalysisDepth(v);
+    KIOUSetAnalysisDepth(v);
     self.depthValueLabel.text = [NSString stringWithFormat:@"%d", v];
     IPALog([NSString stringWithFormat:@"[SETTINGS] analysis depth -> %d", v]);
 }
 
 - (void)onHashChanged:(UIStepper *)stepper {
     int32_t idx = (int32_t)stepper.value;
-    KFSetAnalysisHashIndex(idx);
-    int32_t mb = KFAnalysisHashMB();
+    KIOUSetAnalysisHashIndex(idx);
+    int32_t mb = KIOUAnalysisHashMB();
     self.hashValueLabel.text = [NSString stringWithFormat:@"%d MB", mb];
     IPALog([NSString stringWithFormat:@"[SETTINGS] analysis hash -> %d MB (idx=%d)", mb, idx]);
 }
 
 - (void)onSkillChanged:(UIStepper *)stepper {
     int32_t v = (int32_t)stepper.value;
-    KFSetAnalysisSkillLevel(v);
+    KIOUSetAnalysisSkillLevel(v);
     self.skillValueLabel.text = [NSString stringWithFormat:@"%d", v];
     IPALog([NSString stringWithFormat:@"[SETTINGS] analysis skill -> %d", v]);
 }
@@ -619,20 +619,20 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
 @end
 
 // ===========================================================================
-// KFKifuModesViewController — per-mode kifu autosave toggles.
+// KIOUKifuModesViewController — per-mode kifu autosave toggles.
 //
 // Pushed by the root controller when the Kifu Autosave row is tapped. One
 // section, KIOU_MMODE_COUNT rows (AI / CPUStream / LocalPvP / OnlinePvP /
-// RecordReplay), each a UISwitch on `KFKifuModeEnabled(mode)`.
+// RecordReplay), each a UISwitch on `KIOUKifuModeEnabled(mode)`.
 //
 // Independent of the master KIOU_FEATURE_KIFU_AUTOSAVE flag — the master
 // stays where it is on the root screen; this screen edits only the per-mode
 // flags. The on-device hook (Hook_KifuObserve.m's
-// KFKifuObserveMatchEnd) gates emission on BOTH the master and the
+// KIOUKifuObserveMatchEnd) gates emission on BOTH the master and the
 // per-mode flag.
 // ===========================================================================
 
-@implementation KFKifuModesViewController
+@implementation KIOUKifuModesViewController
 
 - (instancetype)init {
     if ((self = [super initWithStyle:UITableViewStyleInsetGrouped])) {
@@ -669,9 +669,9 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
         cell.selectionStyle = UITableViewCellSelectionStyleNone;
     }
     KiouMatchMode m = (KiouMatchMode)indexPath.row;
-    cell.textLabel.text = KFKifuModeLabel(m);
+    cell.textLabel.text = KIOUKifuModeLabel(m);
     UISwitch *sw = [[UISwitch alloc] init];
-    sw.on = KFKifuModeEnabled(m);
+    sw.on = KIOUKifuModeEnabled(m);
     sw.tag = m;
     [sw addTarget:self action:@selector(onModeToggle:)
  forControlEvents:UIControlEventValueChanged];
@@ -681,10 +681,10 @@ static NSString *const kAboutTwitterURL = @"https://x.com/tkgling";
 
 - (void)onModeToggle:(UISwitch *)sw {
     KiouMatchMode m = (KiouMatchMode)sw.tag;
-    KFSetKifuModeEnabled(m, sw.isOn);
+    KIOUSetKifuModeEnabled(m, sw.isOn);
     IPALog([NSString stringWithFormat:
               @"[SETTINGS] kifu mode %@ -> %@",
-              KFKifuModeLabel(m), sw.isOn ? @"ON" : @"OFF"]);
+              KIOUKifuModeLabel(m), sw.isOn ? @"ON" : @"OFF"]);
 }
 
 @end
@@ -708,7 +708,7 @@ static UIWindow *kfActiveWindow(void) {
     return fallback;
 }
 
-void KFPresentSettings(void) {
+void KIOUPresentSettings(void) {
     dispatch_async(dispatch_get_main_queue(), ^{
         UIWindow *win = kfActiveWindow();
         if (!win) { IPALog(@"[SETTINGS] no active window"); return; }
@@ -720,7 +720,7 @@ void KFPresentSettings(void) {
         // Wrap in a UINavigationController so feature rows that need a
         // sub-screen (e.g. Kifu Autosave's per-mode toggles) get push
         // transitions for free.
-        KFSettingsViewController *root_vc = [[KFSettingsViewController alloc] init];
+        KIOUSettingsViewController *root_vc = [[KIOUSettingsViewController alloc] init];
         UINavigationController *nav =
             [[UINavigationController alloc] initWithRootViewController:root_vc];
         nav.modalPresentationStyle = UIModalPresentationFormSheet;

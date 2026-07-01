@@ -10,10 +10,10 @@
 // settings table itself lives in Hook_SettingsUI.m and Persistence.m — this
 // header only declares the gesture installer that opens it.
 //
-//   KFGestureInstall()  — attach a UIScreenEdgePanGestureRecognizer
+//   KIOUGestureInstall()  — attach a UIScreenEdgePanGestureRecognizer
 //     (right edge) to the key window. Right-edge swipe → present the
 //     existing KEditorSettingsViewController via
-//     `KFPresentSettings()` (defined in Hook_SettingsUI.m).
+//     `KIOUPresentSettings()` (defined in Hook_SettingsUI.m).
 //
 //     Safe to call multiple times (no-op once a right-edge recognizer is
 //     already attached) and safe to call from any thread — the
@@ -21,4 +21,4 @@
 //     and retries until the UIWindow is up.
 // ===========================================================================
 
-void KFGestureInstall(void);
+void KIOUGestureInstall(void);

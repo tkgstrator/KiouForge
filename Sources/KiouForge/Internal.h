@@ -8,7 +8,7 @@
 // Internal.h — KiouForge tweak-local declarations.
 //
 // The KIOU binary catalog (RVAs, hook-id enum, dispatcher externs, shared
-// installer protos, KFUniTaskRet, KFNavigateToTitleScene) lives in
+// installer protos, KIOUUniTaskRet, KIOUNavigateToTitleScene) lives in
 // vendor/KIOU-Hook/KIOUHook.h and is brought in by the import above.
 // ===========================================================================
 
@@ -36,13 +36,13 @@ static inline void writeI32(void *base, uintptr_t off, int32_t val) {
 
 // ---------------------------------------------------------------------------
 // Tweak-local hook installers (KiouForge feature hooks).
-// Shared installer protos (KFInstallAccountObserveHook /
-// KFInstallGrpcLoggingHook) come from KIOUHook.h.
+// Shared installer protos (KIOUInstallAccountObserveHook /
+// KIOUInstallGrpcLoggingHook) come from KIOUHook.h.
 // ---------------------------------------------------------------------------
 
-void KFInstallFrameRateHook(uintptr_t unityBase);
-void KFInstallAnalysisTuneHook(uintptr_t unityBase);
-void KFInstallKifuObserveHook(uintptr_t unityBase);
+void KIOUInstallFrameRateHook(uintptr_t unityBase);
+void KIOUInstallAnalysisTuneHook(uintptr_t unityBase);
+void KIOUInstallKifuObserveHook(uintptr_t unityBase);
 
 // ---------------------------------------------------------------------------
 // SyncSearchResult — mirrors Project.RshogiEngine.SyncSearchResult (struct).
@@ -59,7 +59,7 @@ typedef struct {
     int32_t  Score;
     void    *PV;        // il2cpp String*
     int32_t  Depth;
-} KFSyncSearchResult;
+} KIOUSyncSearchResult;
 
 // ---------------------------------------------------------------------------
 // KIF autosave — ported from KiouKifExporter.
@@ -86,21 +86,21 @@ typedef struct {
 //   x0 = self (the IMatchMode instance)
 //   x1 = ct   (CancellationToken)
 //   x2 = mode_index (KiouMatchMode, injected by cave's MOVZ X2,#imm)
-KFUniTaskRet KFKifuObserveMatchEnd(void *self, void *ct, uint32_t mode_index);
+KIOUUniTaskRet KIOUKifuObserveMatchEnd(void *self, void *ct, uint32_t mode_index);
 
 // Kif_Writer pipeline.
-NSString *KFKifWriterEmit(void *gameCtrl,
+NSString *KIOUKifWriterEmit(void *gameCtrl,
                              void *matchConfig,
                              void *stateStore,
                              const char *matchModeTag);
 
 // Helpers.
-NSString *KFKifTimestamp(void);
-NSString *KFKifSanitizeSegment(NSString *s, NSUInteger maxChars);
-NSString *KFKifEnsureOutputDir(void);
-NSString *KFKifDescribeStartpos(void *gameCtrl);
-NSString *KFKifDescribeOpponents(void *matchConfig, void *stateStore);
-NSString *KFKifTextFromGameController(void *gameCtrl,
+NSString *KIOUKifTimestamp(void);
+NSString *KIOUKifSanitizeSegment(NSString *s, NSUInteger maxChars);
+NSString *KIOUKifEnsureOutputDir(void);
+NSString *KIOUKifDescribeStartpos(void *gameCtrl);
+NSString *KIOUKifDescribeOpponents(void *matchConfig, void *stateStore);
+NSString *KIOUKifTextFromGameController(void *gameCtrl,
                                          void *matchConfig,
                                          void *stateStore,
                                          const char *matchModeTag);
@@ -113,8 +113,8 @@ NSString *KFKifTextFromGameController(void *gameCtrl,
 #define KIFOPTS_OFF_TIME_RULE_LABEL   0x38
 #define KIFOPTS_OFF_ENDING_LABEL      0x48
 
-void *KFIl2cppStringNew(const char *utf8);
-void  KFKifFillWriteOptions(void *opts,
+void *KIOUIl2cppStringNew(const char *utf8);
+void  KIOUKifFillWriteOptions(void *opts,
                                void *matchConfig,
                                void *stateStore,
                                void *gameCtrl,
@@ -131,11 +131,11 @@ typedef NS_ENUM(NSInteger, KiouFeature) {
     KIOU_FEATURE_COUNT,
 };
 
-bool KFFeatureEnabled(KiouFeature f);
-void KFSetFeatureEnabled(KiouFeature f, bool enabled);
-NSString *KFFeatureLabel(KiouFeature f);
+bool KIOUFeatureEnabled(KiouFeature f);
+void KIOUSetFeatureEnabled(KiouFeature f, bool enabled);
+NSString *KIOUFeatureLabel(KiouFeature f);
 
-bool KFFeatureHasNavigation(KiouFeature f);
+bool KIOUFeatureHasNavigation(KiouFeature f);
 
 // ---------------------------------------------------------------------------
 // Per-match-mode toggles for kifu autosave.
@@ -149,9 +149,9 @@ typedef NS_ENUM(NSInteger, KiouMatchMode) {
     KIOU_MMODE_COUNT,
 };
 
-bool      KFKifuModeEnabled(KiouMatchMode m);
-void      KFSetKifuModeEnabled(KiouMatchMode m, bool enabled);
-NSString *KFKifuModeLabel(KiouMatchMode m);
+bool      KIOUKifuModeEnabled(KiouMatchMode m);
+void      KIOUSetKifuModeEnabled(KiouMatchMode m, bool enabled);
+NSString *KIOUKifuModeLabel(KiouMatchMode m);
 
 // IMatchMode self -> _gameAdapter field offsets. The enum order MUST match
 // the observer rows of _SITES in recipes/ — the recipe bakes each index as
@@ -178,21 +178,21 @@ static const char *const kKiouMatchModeTags[KIOU_MMODE_COUNT] = {
 #define KIOU_FPS_PRESET_COUNT  7
 // Presets (preset[i] is the FPS value): {15,24,30,45,60,90,120}
 
-int32_t KFTargetFPS(void);
-int32_t KFFPSIndex(void);
-void    KFSetFPSIndex(int32_t idx);
+int32_t KIOUTargetFPS(void);
+int32_t KIOUFPSIndex(void);
+void    KIOUSetFPSIndex(int32_t idx);
 
 // ---------------------------------------------------------------------------
 // Analysis engine tuning (NativeSyncSession post-game path only).
 // ---------------------------------------------------------------------------
-int32_t KFAnalysisDepth(void);
-void    KFSetAnalysisDepth(int32_t v);
+int32_t KIOUAnalysisDepth(void);
+void    KIOUSetAnalysisDepth(int32_t v);
 
 #define KIOU_ANALYSIS_HASH_PRESET_COUNT  6
 // Presets: {16, 64, 128, 256, 512, 1024}
 
-int32_t KFAnalysisHashIndex(void);
-void    KFSetAnalysisHashIndex(int32_t idx);
-int32_t KFAnalysisHashMB(void);
-int32_t KFAnalysisSkillLevel(void);
-void    KFSetAnalysisSkillLevel(int32_t v);
+int32_t KIOUAnalysisHashIndex(void);
+void    KIOUSetAnalysisHashIndex(int32_t idx);
+int32_t KIOUAnalysisHashMB(void);
+int32_t KIOUAnalysisSkillLevel(void);
+void    KIOUSetAnalysisSkillLevel(int32_t v);
