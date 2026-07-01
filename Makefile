@@ -56,7 +56,6 @@ $(TWEAK_NAME)_FILES      += vendor/KIOU-Hook/KIOUHook.m
 $(TWEAK_NAME)_FILES      += vendor/KIOU-Hook/Account/Persistence.m
 $(TWEAK_NAME)_FILES      += vendor/KIOU-Hook/Hook/AccountObserve.m
 $(TWEAK_NAME)_FILES      += vendor/KIOU-Hook/Hook/GrpcLogging.m
-$(TWEAK_NAME)_FILES      += vendor/KIOU-Hook/Hook/AfkSuppress.m
 
 BUILD_COMMIT             ?= $(shell git rev-parse --short=7 HEAD 2>/dev/null || echo unknown)
 
@@ -125,6 +124,29 @@ IPA_DYLIB                := $(CURDIR)/packages/chinlan/$(TWEAK_NAME).dylib
 
 IPA_OUT                  := $(CURDIR)/packages/ipa/$(basename $(notdir $(DECRYPTED_IPA)))-patched.ipa
 
+# KIOU-Hook site allow-list — KiouForge only ships 17 of the 34 catalog
+# rows. Passing this to `recipes/__init__.py` (via env) filters out the
+# KiouEditor entries whose caves would otherwise collide with the
+# __oslogstring fragment past 0x826FFF8.
+KIOU_HOOK_ID_ALLOW       := \
+    KIOU_HOOK_ID_SET_TARGET_FRAMERATE,\
+    KIOU_HOOK_ID_NSS_SETHASHSIZE,\
+    KIOU_HOOK_ID_NSS_SETSKILLEVEL,\
+    KIOU_HOOK_ID_NSS_SEARCHFULL,\
+    KIOU_HOOK_ID_ACCOUNT_EXISTS,\
+    KIOU_HOOK_ID_LOGIN_ARGS_CREATE,\
+    KIOU_HOOK_ID_REGISTER_USER_ARGS_CREATE,\
+    KIOU_HOOK_ID_RUN_LOGIN_SEQ_MOVENEXT,\
+    KIOU_HOOK_ID_GET_SELF_PROFILE_MOVENEXT,\
+    KIOU_HOOK_ID_HTTPMSGINVOKER_SEND_ASYNC,\
+    KIOU_HOOK_ID_KIFU_AI_END,\
+    KIOU_HOOK_ID_KIFU_CPUSTREAM_END,\
+    KIOU_HOOK_ID_KIFU_LOCAL_END,\
+    KIOU_HOOK_ID_KIFU_ONLINE_END,\
+    KIOU_HOOK_ID_KIFU_REPLAY_END,\
+    KIOU_HOOK_ID_HEADER_PROVIDER_SET_OR_UPDATE_HEADER,\
+    KIOU_HOOK_ID_GAME_ORCHESTRATOR_IS_AFK
+
 ipa:: chinlan
 	@echo "==> assembling patched IPA from $(DECRYPTED_IPA) (v$(TARGET_VERSION))"
 	@if [ ! -f "$(DECRYPTED_IPA)" ]; then \
@@ -133,6 +155,7 @@ ipa:: chinlan
 	  exit 1; \
 	fi
 	@TARGET_VERSION="$(TARGET_VERSION)" \
+	 KIOU_HOOK_ID_ALLOW="$(strip $(KIOU_HOOK_ID_ALLOW))" \
 	 PYTHONPATH="$(KIOU_HOOK_DIR):$$PYTHONPATH" \
 	 ./shared/tools/build_patched_ipa.sh \
 	  --recipe            "$(IPA_RECIPE)" \
