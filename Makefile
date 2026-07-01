@@ -56,6 +56,7 @@ $(TWEAK_NAME)_FILES      += vendor/KIOU-Hook/KIOUHook.m
 $(TWEAK_NAME)_FILES      += vendor/KIOU-Hook/Account/Persistence.m
 $(TWEAK_NAME)_FILES      += vendor/KIOU-Hook/Hook/AccountObserve.m
 $(TWEAK_NAME)_FILES      += vendor/KIOU-Hook/Hook/GrpcLogging.m
+$(TWEAK_NAME)_FILES      += vendor/KIOU-Hook/Hook/AfkSuppress.m
 
 BUILD_COMMIT             ?= $(shell git rev-parse --short=7 HEAD 2>/dev/null || echo unknown)
 

@@ -164,6 +164,19 @@ static const uintptr_t kKiouMatchModeAdapterOffsets[KIOU_MMODE_COUNT] = {
     [KIOU_MMODE_RECORD_REPLAY] = 0x18,
 };
 
+// IMatchMode self -> _stateStore field offsets. All five IMatchMode
+// implementations carry a GameStateStore reference sitting one pointer
+// slot before _gameAdapter — reading it lets the kif writer pull
+// player names via the same ReactiveProperty<PlayerInfo> path online
+// matches use.
+static const uintptr_t kKiouMatchModeStateStoreOffsets[KIOU_MMODE_COUNT] = {
+    [KIOU_MMODE_AI_MATCH]      = 0x40,
+    [KIOU_MMODE_CPU_STREAM]    = 0x48,
+    [KIOU_MMODE_LOCAL_PVP]     = 0x10,
+    [KIOU_MMODE_ONLINE_PVP]    = 0x28,
+    [KIOU_MMODE_RECORD_REPLAY] = 0x10,
+};
+
 static const char *const kKiouMatchModeTags[KIOU_MMODE_COUNT] = {
     [KIOU_MMODE_AI_MATCH]      = "AIMatchMode",
     [KIOU_MMODE_CPU_STREAM]    = "CPUStreamMode",

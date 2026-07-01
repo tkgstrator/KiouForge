@@ -74,11 +74,15 @@
 // ---------------------------------------------------------------------------
 // RVAs (KIOU 1.0.1 build 11). Same source of truth as KiouUsiProxy.
 // ---------------------------------------------------------------------------
-#define RVA_GAMECTRL_GET_USI_TEXT   0x5D44074  // string GameController.GetUSIText(this)
-#define RVA_POSITION_TO_SFEN        0x5D44374  // string Position.ToSFEN(this)
-#define RVA_USIPARSER_PARSE_USI     0x5D572B4  // static RecordManager USIParser.ParseUSI(string)
-#define RVA_KIFWRITEOPTIONS_CTOR    0x5D53960  // void KIFWriteOptions..ctor(this)
-#define RVA_KIFWRITER_WRITE         0x5D53968  // static string KIFWriter.Write(RecordManager, KIFWriteOptions)
+// RVAs pinned to KIOU 1.0.2 (dump.cs verified 2026-07-02). The previous
+// values were 1.0.1 leftovers pointing at unrelated methods — calling
+// through them at match-end crashed with a SIGSEGV inside GetUSIText
+// (LDR from a bogus X10 loaded from *(gameCtrl+0xB0)).
+#define RVA_GAMECTRL_GET_USI_TEXT   0x5D49970  // string GameController.GetUSIText(this)
+#define RVA_POSITION_TO_SFEN        0x5D49C70  // string Position.ToSFEN(this)
+#define RVA_USIPARSER_PARSE_USI     0x5D5CBB0  // static RecordManager USIParser.ParseUSI(string)
+#define RVA_KIFWRITEOPTIONS_CTOR    0x5D5925C  // void KIFWriteOptions..ctor(this)
+#define RVA_KIFWRITER_WRITE         0x5D59264  // static string KIFWriter.Write(RecordManager, KIFWriteOptions)
 
 // KIFWriteOptions instance size needed for the raw-buffer trick. See the
 // KIFOPTS_OFF_* constants in Internal.h for the field map. Last field

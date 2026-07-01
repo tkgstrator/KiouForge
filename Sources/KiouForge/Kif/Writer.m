@@ -146,13 +146,18 @@ KIOUUniTaskRet KIOUKifuObserveMatchEnd(void *self, void *ct,
         return zero;
     }
 
-    // MatchConfig / GameStateStore only available on OnlinePvPMode's `self`;
-    // other modes' KIF gets blank player names (acceptable for offline play).
+    // All five IMatchMode implementations carry a GameStateStore that
+    // KIOUKifDescribeOpponents / KIOUKifFillWriteOptions can read player
+    // names from via ReactiveProperty<PlayerInfo>. Only OnlinePvPMode
+    // additionally exposes a MatchConfig — the other modes seed the
+    // PlayerInfo directly into stateStore at match start.
     void *matchConfig = NULL;
     void *stateStore  = NULL;
+    if (mode_index < KIOU_MMODE_COUNT && ptrLooksValid(self)) {
+        stateStore = readPtr(self, kKiouMatchModeStateStoreOffsets[mode_index]);
+    }
     if (mode_index == KIOU_MMODE_ONLINE_PVP && ptrLooksValid(self)) {
         matchConfig = readPtr(self, ONLINEPVPMODE_OFF_MATCHCONFIG);
-        stateStore  = readPtr(self, ONLINEPVPMODE_OFF_STATE_STORE);
     }
 
     IPALog([NSString stringWithFormat:

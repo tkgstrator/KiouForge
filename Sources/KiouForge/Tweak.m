@@ -55,6 +55,7 @@ static void installUnityHooks(uintptr_t unityBase, const char *unityName) {
     KIOUInstallKifuObserveHook(unityBase);
     KIOUInstallAccountObserveHook(unityBase);
     KIOUInstallGrpcLoggingHook(unityBase);
+    KIOUInstallAfkSuppressHook(unityBase);
 
     g_unityHooked = YES;
     IPALog(@"=== KiouForge: all hooks installed ===");
