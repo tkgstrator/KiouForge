@@ -174,21 +174,61 @@ ipa:: chinlan
 #   so `make deploy` targets only the IPA path and doesn't drag in the
 #   JB dpkg install as a side effect.
 #
+#   TrollStore vs TrollStore Lite: the trollstorehelper binary lives in
+#   different places per install flavour. The default TROLLSTORE_HELPER
+#   value below empty-strings out on purpose so the target falls back
+#   to SSH-discovery, which walks /var/jb/Applications and the App
+#   bundle tree. TrollStoreLite.app is ranked above plain TrollStore.app
+#   so a Lite device wins if both directories exist. The old
+#   TrollStorePersistenceHelper.app directory is excluded: on Lite it
+#   never gets installed, and a leftover from a previous non-Lite JB
+#   session often has a helper binary whose entitlements have been
+#   invalidated, which SIGKILLs on invocation and shows up as ssh 255.
+#
+#   Remote staging path: /var/mobile/Documents/, not /tmp/.
+#   trollstorehelper runs in a sandbox that cannot read /tmp/ — an IPA
+#   staged there is rejected with return code 166
+#   ("IPA does not exist or is not accessible"), even though the file
+#   is physically present. Documents/ is one of the few locations both
+#   root (scp target) and mobile (trollstorehelper runtime) can access;
+#   the recipe chowns after scp so mobile can read the payload.
+#
 #   Override on the command line or in .env:
-#     TROLLSTORE_HELPER        — trollstorehelper binary path on the device
+#     TROLLSTORE_HELPER        — pin trollstorehelper path (skips discovery)
 #     INSTALLED_IPA_BUNDLE_ID  — bundle id used to relaunch the app
 #     DEVICE_USER              — SSH user (defaults to root)
+#     REMOTE_STAGING_DIR       — sandbox-visible dir to scp the IPA into
 # ---------------------------------------------------------------------------
-TROLLSTORE_HELPER        ?= /var/jb/Applications/TrollStorePersistenceHelper.app/trollstorehelper
+TROLLSTORE_HELPER        ?=
 INSTALLED_IPA_BUNDLE_ID  ?= $(TARGET_BUNDLE_ID)$(if $(BUNDLE_ID_SUFFIX),.$(BUNDLE_ID_SUFFIX),)
 DEVICE_USER              ?= root
+REMOTE_STAGING_DIR       ?= /var/mobile/Documents
 
 .PHONY: deploy
 deploy: ipa
-	@echo "==> scp $(notdir $(IPA_OUT)) -> $(DEVICE_USER)@$(THEOS_DEVICE_IP):/tmp/"
-	@scp -q $(IPA_OUT) $(DEVICE_USER)@$(THEOS_DEVICE_IP):/tmp/$(notdir $(IPA_OUT))
-	@echo "==> trollstorehelper install force /tmp/$(notdir $(IPA_OUT))"
-	@ssh $(DEVICE_USER)@$(THEOS_DEVICE_IP) '$(TROLLSTORE_HELPER) install force /tmp/$(notdir $(IPA_OUT))'
+	@helper='$(TROLLSTORE_HELPER)'; \
+	if [ -z "$$helper" ]; then \
+	  echo "==> discovering trollstorehelper on $(THEOS_DEVICE_IP)"; \
+	  helper=$$(ssh $(DEVICE_USER)@$(THEOS_DEVICE_IP) \
+	    "find /var/jb/Applications /var/containers/Bundle/Application \
+	          -maxdepth 4 -type f -name trollstorehelper 2>/dev/null \
+	     | grep -v 'PersistenceHelper' \
+	     | awk 'BEGIN{FS=\"/\"} {for(i=1;i<=NF;i++) if(\$$i ~ /^TrollStoreLite\\.app\$$/){print \"0 \"\$$0; next}} {print \"1 \"\$$0}' \
+	     | sort -k1,1 | awk '{print \$$2}' | head -n1"); \
+	fi; \
+	if [ -z "$$helper" ]; then \
+	  echo "error: trollstorehelper not found on device"; \
+	  echo "       override with: make deploy TROLLSTORE_HELPER=<path>"; \
+	  exit 1; \
+	fi; \
+	echo "==> helper: $$helper"; \
+	echo "==> scp $(notdir $(IPA_OUT)) -> $(DEVICE_USER)@$(THEOS_DEVICE_IP):$(REMOTE_STAGING_DIR)/"; \
+	scp -q $(IPA_OUT) $(DEVICE_USER)@$(THEOS_DEVICE_IP):$(REMOTE_STAGING_DIR)/$(notdir $(IPA_OUT)); \
+	ssh $(DEVICE_USER)@$(THEOS_DEVICE_IP) \
+	    "chown mobile:mobile '$(REMOTE_STAGING_DIR)/$(notdir $(IPA_OUT))' 2>/dev/null || true"; \
+	echo "==> trollstorehelper install force $(REMOTE_STAGING_DIR)/$(notdir $(IPA_OUT))"; \
+	ssh $(DEVICE_USER)@$(THEOS_DEVICE_IP) \
+	    "$$helper install force $(REMOTE_STAGING_DIR)/$(notdir $(IPA_OUT))"
 	@echo "==> launching $(TARGET_PROCESS) ($(INSTALLED_IPA_BUNDLE_ID))"
 	@ssh $(DEVICE_USER)@$(THEOS_DEVICE_IP) 'sleep 1; (open $(INSTALLED_IPA_BUNDLE_ID) 2>/dev/null \
 	    || uiopen $(INSTALLED_IPA_BUNDLE_ID):// 2>/dev/null \

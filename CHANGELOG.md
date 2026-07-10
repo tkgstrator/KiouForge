@@ -4,6 +4,10 @@ All notable changes to KiouForge are documented here.
 
 ## [Unreleased]
 
+### Changed
+
+- `make deploy` now works on TrollStore Lite devices. `TROLLSTORE_HELPER` defaults to empty and the target SSH-discovers the helper binary at deploy time, preferring `TrollStoreLite.app` over `TrollStore.app` and filtering out stale `TrollStorePersistenceHelper.app` leftovers whose entitlements expire between sessions (which manifest as ssh 255 / SIGKILL 137). The IPA is staged in `/var/mobile/Documents/` instead of `/tmp/` — the trollstorehelper sandbox cannot read `/tmp/` and rejects an IPA there with error 166. The staged file is `chown mobile:mobile`-ed after `scp` so the helper can open it. Non-Lite setups keep working unchanged; operators who pinned `TROLLSTORE_HELPER` in their `.env` are unaffected. `REMOTE_STAGING_DIR` is exposed as an override for setups that stage elsewhere.
+
 ## [0.2.1] — 2026-06-26
 
 ### Changed
